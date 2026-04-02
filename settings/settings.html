@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shelve — Settings</title>
+  <link rel="stylesheet" href="settings.css">
+  <script src="../lib/theme-init.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#" class="back-link" id="btn-back" title="Back to shelves">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Back to Shelves
+      </a>
+      <div class="brand">
+        <img src="../icons/icon48.svg" alt="" class="brand-icon">
+        <span class="brand-name">Settings</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="settings-card">
+      <h1 class="settings-title">Appearance</h1>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="dark-mode-select">Dark Mode</label>
+          <p class="setting-desc">Choose how Shelve looks across its pages.</p>
+        </div>
+        <div class="setting-control">
+          <div class="segmented" id="dark-mode-control" role="radiogroup" aria-label="Dark mode">
+            <button class="seg-btn" data-value="system" aria-pressed="false">System</button>
+            <button class="seg-btn" data-value="light"  aria-pressed="false">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>
+              Light
+            </button>
+            <button class="seg-btn" data-value="dark"   aria-pressed="false">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+              Dark
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h1 class="settings-title">Data &amp; Sync</h1>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="auto-fetch-toggle">Auto-fetch on new device</label>
+          <p class="setting-desc">When Shelve starts on a device where page text is missing, fetch it automatically in the background. Thumbnails cannot be recovered this way — they require the original tab to be active.</p>
+        </div>
+        <div class="setting-control">
+          <button class="toggle-btn" id="auto-fetch-toggle" role="switch" aria-checked="false">
+            <span class="toggle-thumb"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="switch-focus-toggle">Switch focus when shelving tabs</label>
+          <p class="setting-desc">When enabled, Shelve briefly activates each background tab while shelving to capture its thumbnail. When disabled, thumbnails are only captured for the active tab.</p>
+        </div>
+        <div class="setting-control">
+          <button class="toggle-btn" id="switch-focus-toggle" role="switch" aria-checked="false">
+            <span class="toggle-thumb"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="setting-row setting-row-fetch">
+        <div class="setting-info">
+          <span class="setting-label">Fetch missing data now</span>
+          <p class="setting-desc" id="fetch-status-text">Scans all shelved tabs and fetches any missing page text and, if focus switching is enabled above, missing thumbnails too.</p>
+        </div>
+        <div class="setting-control">
+          <button class="action-btn" id="btn-fetch-now">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+            Fetch now
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress bar (shown during fetch) -->
+      <div id="fetch-progress-wrap" class="fetch-progress-wrap hidden">
+        <div class="fetch-progress-bar">
+          <div id="fetch-progress-fill" class="fetch-progress-fill"></div>
+        </div>
+        <div class="fetch-progress-row">
+          <span id="fetch-progress-label" class="fetch-progress-label"></span>
+          <button id="btn-cancel-fetch" class="cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h1 class="settings-title">About</h1>
+      <div class="about-row">
+        <img src="../icons/icon48.svg" alt="" class="about-icon">
+        <div>
+          <p class="about-name">Shelve</p>
+          <p class="about-version">Version 1.0.0</p>
+          <p class="about-desc">Archive, search and organize your browser tabs — synced across all your devices.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="settings.js"></script>
+</body>
+</html>

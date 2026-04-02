@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shelve</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <img src="../icons/icon48.svg" alt="" class="logo">
+    <span class="logo-text">Shelve</span>
+    <button id="btn-settings" class="btn-gear" title="Open settings" aria-label="Settings">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+    </button>
+  </div>
+
+  <div class="actions">
+    <button id="btn-archive-current" class="btn btn-primary" title="Shelve this tab">
+      <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v1h16V5a2 2 0 00-2-2H4zM18 8H2v8a2 2 0 002 2h12a2 2 0 002-2V8zM7 11a1 1 0 011-1h4a1 1 0 010 2H8a1 1 0 01-1-1z"/></svg>
+      Shelve Current
+    </button>
+
+    <button id="btn-archive-all" class="btn btn-secondary" title="Shelve all open tabs">
+      <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+      Shelve All
+    </button>
+
+    <div class="separator"></div>
+
+    <button id="btn-archive-close-current" class="btn btn-secondary" title="Shelve this tab and close it">
+      <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      Shelve &amp; Close Current
+    </button>
+
+    <button id="btn-archive-close-all" class="btn btn-secondary btn-danger" title="Shelve all tabs and close them">
+      <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      Shelve &amp; Close All
+    </button>
+
+    <div class="separator"></div>
+
+    <button id="btn-browse" class="btn btn-browse" title="Open shelves browser">
+      <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      Browse Shelves
+    </button>
+
+  </div>
+
+  <!-- Status / progress bar -->
+  <div id="status" class="status hidden">
+    <div class="status-bar">
+      <div id="status-fill" class="status-fill"></div>
+    </div>
+    <span id="status-text" class="status-text"></span>
+  </div>
+
+  <!-- Confirmation dialog -->
+  <div id="confirm-overlay" class="confirm-overlay hidden">
+    <div class="confirm-box">
+      <p id="confirm-message" class="confirm-message"></p>
+      <div class="confirm-buttons">
+        <button id="confirm-cancel" class="btn btn-sm btn-ghost">Cancel</button>
+        <button id="confirm-ok" class="btn btn-sm btn-danger-fill">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

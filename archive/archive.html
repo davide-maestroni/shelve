@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shelve — Archive</title>
+  <link rel="stylesheet" href="archive.css">
+  <script src="../lib/theme-init.js"></script>
+</head>
+<body>
+  <!-- ─── Top bar ──────────────────────────────────────────── -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <!-- Back button (shown in shelf view) -->
+        <button id="btn-back" class="btn-icon-only hidden" title="Back to shelves" aria-label="Back">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        </button>
+        <div class="brand">
+          <img src="../icons/icon48.svg" alt="" class="brand-icon">
+          <span class="brand-name" id="brand-name">Shelve</span>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          <input id="search-input" type="text" class="search-input" placeholder="Search everything…" autocomplete="off" spellcheck="false">
+          <button id="search-clear" class="search-clear hidden" aria-label="Clear search">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <span id="tab-count-badge" class="tab-count-badge" title="Shelved tabs"></span>
+        <!-- Shown only in shelves view -->
+        <button id="btn-new-shelf" class="btn-icon-only hidden" title="Create new shelf" aria-label="New shelf">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+        </button>
+        <button id="btn-open-all-same" class="btn-icon-only hidden" title="Open all shelved tabs in this window" aria-label="Open all tabs in this window">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1z"/></svg>
+        </button>
+        <button id="btn-open-all-new" class="btn-icon-only hidden" title="Open all shelved tabs in a new window" aria-label="Open all tabs in a new window">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+        </button>
+        <!-- Shown only in shelves view when a custom order is set -->
+        <button id="btn-reset-order" class="btn-icon-only hidden" title="Reset to alphabetical order" aria-label="Reset order">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        </button>
+        <!-- Shown only in shelves view -->
+        <button id="btn-delete-all" class="btn-topbar-danger hidden" title="Delete all shelves and saved tabs">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+          Delete all
+        </button>
+        <!-- Shown only in shelf detail view -->
+        <button id="btn-open-col-tabs-same" class="btn-icon-only hidden" title="Open all tabs in this shelf in this window" aria-label="Open all in this window">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1z"/></svg>
+        </button>
+        <button id="btn-open-col-tabs-new" class="btn-icon-only hidden" title="Open all tabs in this shelf in a new window" aria-label="Open all in a new window">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+        </button>
+        <button id="btn-delete-all-tabs" class="btn-topbar-danger hidden" title="Delete all tabs in this shelf">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+          Delete all tabs
+        </button>
+        <button id="btn-toggle-view" class="btn-icon-only" title="Switch to list view" aria-label="Toggle view">
+          <svg class="icon-grid" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          <svg class="icon-list" viewBox="0 0 20 20" fill="currentColor" style="display:none"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+        </button>
+        <button id="btn-settings" class="btn-icon-only" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Main content ─────────────────────────────────────── -->
+  <main class="main" id="main">
+
+    <!-- Shelves view -->
+    <section id="view-shelves" class="view">
+      <div id="shelves-grid" class="shelves-grid">
+        <!-- Shelf cards injected here -->
+      </div>
+      <div id="empty-shelves" class="empty-state hidden">
+        <svg class="empty-icon" viewBox="0 0 64 64" fill="none"><rect x="8" y="14" width="48" height="6" rx="3" fill="currentColor" opacity=".2"/><rect x="8" y="28" width="48" height="6" rx="3" fill="currentColor" opacity=".2"/><rect x="8" y="42" width="32" height="6" rx="3" fill="currentColor" opacity=".15"/><rect x="10" y="8" width="4" height="6" rx="2" fill="#f59e0b"/><rect x="18" y="6" width="6" height="8" rx="2" fill="#6366f1"/><rect x="28" y="9" width="4" height="5" rx="2" fill="#10b981"/></svg>
+        <h2 class="empty-title">Your shelves are empty</h2>
+        <p class="empty-desc">Click the Shelve extension icon to shelve your first tab.</p>
+      </div>
+    </section>
+
+    <!-- Shelf detail view -->
+    <section id="view-shelf" class="view hidden">
+      <div id="shelf-header" class="shelf-header">
+        <span id="shelf-color-dot" class="shelf-color-dot"></span>
+        <h1 id="shelf-title" class="shelf-title" contenteditable="false" spellcheck="false"></h1>
+        <button id="btn-edit-shelf-title" class="btn-icon-only btn-edit-title" title="Edit title">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+        </button>
+        <input id="shelf-color-input" type="color" class="shelf-color-input" title="Shelf colour">
+      </div>
+      <div id="tabs-grid" class="tabs-grid">
+        <!-- Tab cards injected here -->
+      </div>
+      <div id="empty-tabs" class="empty-state hidden">
+        <p class="empty-desc">No tabs in this shelf yet.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── Tab card template ───────────────────────────────── -->
+  <template id="tpl-tab-card">
+    <article class="tab-card" draggable="true">
+      <div class="tab-thumb-wrap">
+        <img class="tab-thumb" alt="" loading="lazy">
+        <div class="tab-thumb-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        </div>
+        <a class="tab-open-overlay" href="#" target="_blank" rel="noopener" title="Open in new tab">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/></svg>
+        </a>
+      </div>
+      <div class="tab-body">
+        <!-- Mismatch notice (shown when fitScore is low) -->
+        <div class="tab-mismatch hidden">
+          <svg class="tab-mismatch-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8.982 1.566a1.13 1.13 0 00-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 01-1.1 0L7.1 5.995A.905.905 0 018 5zm.002 6a1 1 0 110 2 1 1 0 010-2z"/></svg>
+          <span class="tab-mismatch-text"></span>
+          <button class="btn-move-suggested">Move</button>
+          <button class="btn-new-shelf-suggested hidden">New shelf</button>
+        </div>
+
+        <div class="tab-title-row">
+          <span class="tab-title" contenteditable="false" spellcheck="false"></span>
+          <div class="tab-actions">
+            <button class="btn-tab-action btn-move-tab" title="Move to another shelf">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M1.5 1.5A.5.5 0 012 1h4.5a.5.5 0 010 1H2.707l3.147 3.146a.5.5 0 11-.708.708L2 2.707V7.5a.5.5 0 01-1 0V2a.5.5 0 01.5-.5zm13 13a.5.5 0 01-.5.5H9.5a.5.5 0 010-1h3.793l-3.147-3.146a.5.5 0 01.708-.708L14 13.293V8.5a.5.5 0 011 0V14a.5.5 0 01-.5.5z"/></svg>
+            </button>
+            <button class="btn-tab-action btn-edit-tab-title" title="Edit title">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M12.146 1.146a.5.5 0 01.708 0l2 2a.5.5 0 010 .708l-9.5 9.5a.5.5 0 01-.233.131l-4 1a.5.5 0 01-.606-.606l1-4a.5.5 0 01.131-.232l9.5-9.5zm-8.5 10.207L3 13.5l2.147-.536L3.646 11.353zM4.354 10.646l7-7L9.5 1.793l-7 7 1.854 1.853z"/></svg>
+            </button>
+            <button class="btn-tab-action btn-refresh-tab" title="Re-shelve from live URL">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.417A6 6 0 118 2v1z"/><path d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z"/></svg>
+            </button>
+            <button class="btn-tab-action btn-delete-tab btn-danger-icon" title="Remove from shelf">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+            </button>
+          </div>
+        </div>
+        <p class="tab-desc" contenteditable="false" spellcheck="false"></p>
+        <div class="tab-meta">
+          <span class="tab-revert hidden">
+            <button class="btn-revert">↩ Revert changes</button>
+          </span>
+          <span class="tab-date"></span>
+        </div>
+      </div>
+
+    </article>
+  </template>
+
+  <!-- ─── Shelf card template ────────────────────────── -->
+  <template id="tpl-shelf-card">
+    <div class="shelf-card" draggable="true">
+      <div class="shelf-card-accent"></div>
+      <div class="shelf-card-body">
+        <div class="shelf-card-header">
+          <h2 class="shelf-card-title"></h2>
+          <div class="shelf-card-favicons"></div>
+          <div class="shelf-card-header-right">
+            <span class="shelf-card-count"></span>
+            <span class="shelf-mismatch-badge hidden" title="Some tabs may fit better in another shelf">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8.982 1.566a1.13 1.13 0 00-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 01-1.1 0L7.1 5.995A.905.905 0 018 5zm.002 6a1 1 0 110 2 1 1 0 010-2z"/></svg>
+            </span>
+            <button class="btn-open-shelf-same btn-card-icon" title="Open all tabs in this window">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.5A1.5 1.5 0 012.5 1h11A1.5 1.5 0 0115 2.5v11a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 13.5v-11zm1.5-.5a.5.5 0 00-.5.5V5h12V2.5a.5.5 0 00-.5-.5h-11zM13.5 6H2.5a.5.5 0 00-.5.5v7a.5.5 0 00.5.5h11a.5.5 0 00.5-.5v-7a.5.5 0 00-.5-.5z"/></svg>
+            </button>
+            <button class="btn-open-shelf-new btn-card-icon" title="Open all tabs in a new window">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 1A1.5 1.5 0 001 2.5V8a.5.5 0 001 0V4h12v9.5a.5.5 0 01-.5.5H8a.5.5 0 000 1h5.5A1.5 1.5 0 0015 13.5v-11A1.5 1.5 0 0013.5 1h-11zm0 1h11a.5.5 0 01.5.5V3H2V2.5a.5.5 0 01.5-.5zM7.5 8a.5.5 0 01.5.5v5a.5.5 0 01-1 0V9H2.5a.5.5 0 010-1H7.5z"/></svg>
+            </button>
+            <button class="btn-delete-shelf btn-danger-icon" title="Delete shelf and all its tabs">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="shelf-card-thumbs"></div>
+        <div class="shelf-card-favicons-grid"></div>
+      </div>
+    </div>
+  </template>
+
+  <script type="module" src="archive.js"></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shelve — Icon Generator</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 2rem; background: #f1f5f9; }
+    h1 { margin-bottom: 1.5rem; }
+    .row { display: flex; gap: 2rem; align-items: flex-end; margin-bottom: 2rem; }
+    canvas { border: 1px solid #cbd5e1; border-radius: 4px; image-rendering: pixelated; }
+    button {
+      display: block; margin-top: 0.5rem; padding: 0.4rem 1rem;
+      background: #4f46e5; color: white; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 0.9rem;
+    }
+    button:hover { background: #4338ca; }
+    p { color: #64748b; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Shelve Icon Generator</h1>
+  <p>
+    Click each "Download" button to save the PNG. Place the downloaded files in the
+    <code>icons/</code> folder, then reload the extension in <code>chrome://extensions</code>.
+  </p>
+  <div class="row">
+    <div>
+      <canvas id="c16" width="16" height="16" style="width:64px;height:64px"></canvas>
+      <button onclick="download(16)">Download icon16.png</button>
+    </div>
+    <div>
+      <canvas id="c48" width="48" height="48" style="width:96px;height:96px"></canvas>
+      <button onclick="download(48)">Download icon48.png</button>
+    </div>
+    <div>
+      <canvas id="c128" width="128" height="128" style="width:128px;height:128px"></canvas>
+      <button onclick="download(128)">Download icon128.png</button>
+    </div>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const s = size / 128; // scale factor
+
+      function r(x, y, w, h, radius, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x * s, y * s, w * s, h * s, radius * s);
+        ctx.fill();
+      }
+
+      // Background
+      r(0, 0, 128, 128, 24, '#4f46e5');
+
+      // Side panels
+      r(14, 14, 8, 104, 3, '#a5b4fc');
+      r(106, 14, 8, 104, 3, '#a5b4fc');
+
+      // Books row 1 (above first shelf)
+      r(26, 18, 14, 26, 2, '#f59e0b');
+      r(44, 22, 10, 22, 2, '#10b981');
+      r(58, 16, 16, 28, 2, '#ef4444');
+      r(78, 20, 12, 24, 2, '#8b5cf6');
+      r(94, 18, 10, 26, 2, '#3b82f6');
+
+      // Shelf board 1
+      r(16, 44, 96, 10, 3, '#c7d2fe');
+
+      // Books row 2 (between shelves)
+      r(26, 54, 12, 24, 2, '#06b6d4');
+      r(42, 50, 16, 28, 2, '#f97316');
+      r(62, 54, 10, 24, 2, '#84cc16');
+      r(76, 52, 14, 26, 2, '#ec4899');
+      r(94, 56, 10, 22, 2, '#a5b4fc');
+
+      // Shelf board 2
+      r(16, 78, 96, 10, 3, '#c7d2fe');
+
+      // Bottom shelf
+      r(16, 112, 96, 6, 3, '#c7d2fe');
+    }
+
+    function download(size) {
+      const canvas = document.getElementById('c' + size);
+      const link = document.createElement('a');
+      link.download = 'icon' + size + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // Draw all sizes on load
+    [16, 48, 128].forEach(size => {
+      const canvas = document.getElementById('c' + size);
+      drawIcon(canvas, size);
+    });
+  </script>
+</body>
+</html>
