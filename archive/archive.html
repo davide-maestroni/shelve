@@ -46,7 +46,7 @@
         </button>
         <!-- Shown only in shelves view when a custom order is set -->
         <button id="btn-reset-order" class="btn-icon-only hidden" title="Reset to alphabetical order" aria-label="Reset order">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5a.5.5 0 01.5-.5h9a4.5 4.5 0 010 9H3a.5.5 0 010-1h7.5a3.5 3.5 0 000-7H2.707l2.147 2.146a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 11.708.708L2.707 3H1.5a.5.5 0 01-.5-.5z"/></svg>
         </button>
         <!-- Shown only in shelves view -->
         <button id="btn-delete-all" class="btn-topbar-danger hidden" title="Delete all shelves and saved tabs">
@@ -99,6 +99,9 @@
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
         </button>
         <input id="shelf-color-input" type="color" class="shelf-color-input" title="Shelf colour">
+        <button id="btn-revert-shelf" class="btn-icon-only btn-revert-shelf hidden" title="Revert name and colour to defaults">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5a.5.5 0 01.5-.5h9a4.5 4.5 0 010 9H3a.5.5 0 010-1h7.5a3.5 3.5 0 000-7H2.707l2.147 2.146a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 11.708.708L2.707 3H1.5a.5.5 0 01-.5-.5z"/></svg>
+        </button>
       </div>
       <div id="tabs-grid" class="tabs-grid">
         <!-- Tab cards injected here -->
@@ -138,7 +141,10 @@
               <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M1.5 1.5A.5.5 0 012 1h4.5a.5.5 0 010 1H2.707l3.147 3.146a.5.5 0 11-.708.708L2 2.707V7.5a.5.5 0 01-1 0V2a.5.5 0 01.5-.5zm13 13a.5.5 0 01-.5.5H9.5a.5.5 0 010-1h3.793l-3.147-3.146a.5.5 0 01.708-.708L14 13.293V8.5a.5.5 0 011 0V14a.5.5 0 01-.5.5z"/></svg>
             </button>
             <button class="btn-tab-action btn-edit-tab-title" title="Edit title">
-              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M12.146 1.146a.5.5 0 01.708 0l2 2a.5.5 0 010 .708l-9.5 9.5a.5.5 0 01-.233.131l-4 1a.5.5 0 01-.606-.606l1-4a.5.5 0 01.131-.232l9.5-9.5zm-8.5 10.207L3 13.5l2.147-.536L3.646 11.353zM4.354 10.646l7-7L9.5 1.793l-7 7 1.854 1.853z"/></svg>
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+            </button>
+            <button class="btn-tab-action btn-revert-tab-title hidden" title="Revert title to original">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5a.5.5 0 01.5-.5h9a4.5 4.5 0 010 9H3a.5.5 0 010-1h7.5a3.5 3.5 0 000-7H2.707l2.147 2.146a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 11.708.708L2.707 3H1.5a.5.5 0 01-.5-.5z"/></svg>
             </button>
             <button class="btn-tab-action btn-refresh-tab" title="Re-shelve from live URL">
               <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.417A6 6 0 118 2v1z"/><path d="M8 4.466V.534a.25.25 0 01.41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 018 4.466z"/></svg>
@@ -151,7 +157,10 @@
         <p class="tab-desc" contenteditable="false" spellcheck="false"></p>
         <div class="tab-meta">
           <span class="tab-revert hidden">
-            <button class="btn-revert">↩ Revert changes</button>
+            <button class="btn-revert">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5a.5.5 0 01.5-.5h9a4.5 4.5 0 010 9H3a.5.5 0 010-1h7.5a3.5 3.5 0 000-7H2.707l2.147 2.146a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 11.708.708L2.707 3H1.5a.5.5 0 01-.5-.5z"/></svg>
+              Revert changes
+            </button>
           </span>
           <span class="tab-date"></span>
         </div>

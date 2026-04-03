@@ -406,6 +406,11 @@ body {
   width: 28px; height: 28px;
   color: var(--text3);
 }
+.btn-revert-shelf {
+  width: 28px; height: 28px;
+  color: var(--text3);
+}
+.btn-revert-shelf:hover { color: var(--accent); }
 .shelf-color-input {
   width: 28px; height: 28px;
   border: none; border-radius: 50%;
@@ -698,6 +703,9 @@ body {
   color: var(--text3);
 }
 .btn-revert {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   color: var(--accent);
   background: none;
@@ -707,6 +715,7 @@ body {
   text-decoration: underline;
   text-decoration-style: dotted;
 }
+.btn-revert svg { width: 11px; height: 11px; flex-shrink: 0; }
 .btn-revert:hover { color: var(--accent-h); }
 
 /* Search match */

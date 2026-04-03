@@ -158,9 +158,11 @@ async function handleMessage(msg) {
       return { ok: true };
     }
     case 'delete_tab': {
+      const deletedTab = (await Store.getTabs())[normalizeUrl(msg.normalizedUrl)];
       await Store.removeTab(normalizeUrl(msg.normalizedUrl));
       await _refreshFitScores();
       broadcast({ type: 'tabs_updated' });
+      if (deletedTab?.shelfId) _recomputeShelfColor(deletedTab.shelfId).catch(() => {});
       return { ok: true };
     }
     case 'update_tab': {
@@ -216,6 +218,10 @@ async function handleMessage(msg) {
       });
       await _refreshFitScores([targetShelfId, sourceShelfId].filter(Boolean));
       broadcast({ type: 'tabs_updated' });
+      (async () => {
+        for (const id of [targetShelfId, sourceShelfId].filter(Boolean))
+          await _recomputeShelfColor(id).catch(() => {});
+      })();
       return { ok: true };
     }
     case 'delete_all': {
@@ -241,6 +247,7 @@ async function handleMessage(msg) {
       await Promise.all(toDelete.map(t => Store.removeTab(t.normalizedUrl)));
       await _refreshFitScores();
       broadcast({ type: 'tabs_updated' });
+      _recomputeShelfColor(msg.shelfId).catch(() => {});
       return { ok: true };
     }
     case 'delete_shelf': {
@@ -299,10 +306,11 @@ async function ensureTabReady(tab) {
 
 /**
  * @param {chrome.tabs.Tab} tab
- * @param {{ skipClassification?: boolean }} opts
+ * @param {{ skipClassification?: boolean, forceCapture?: boolean }} opts
  *   skipClassification – skip collection assignment and fit-score refresh (use in batch mode).
+ *   forceCapture – skip the freshTab.active check and always attempt thumbnail capture.
  */
-async function archiveTab(tab, { skipClassification = false } = {}) {
+async function archiveTab(tab, { skipClassification = false, forceCapture = false } = {}) {
   if (!isArchivable(tab)) return;
 
   const nUrl = normalizeUrl(tab.url);
@@ -314,7 +322,7 @@ async function archiveTab(tab, { skipClassification = false } = {}) {
     let thumbnail = null;
     try {
       const freshTab = await chrome.tabs.get(tab.id).catch(() => null);
-      if (freshTab?.active) {
+      if (forceCapture || freshTab?.active) {
         const capture = () => Promise.race([
           chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 70 }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Capture timeout')), 3000)),
@@ -377,6 +385,8 @@ async function archiveTab(tab, { skipClassification = false } = {}) {
       } else {
         await _refreshFitScores();
       }
+      const savedTab = (await Store.getTabs())[nUrl];
+      if (savedTab?.shelfId) _recomputeShelfColor(savedTab.shelfId).catch(() => {});
     }
 
     broadcast({ type: 'archive_done', url: nUrl });
@@ -472,13 +482,25 @@ async function archiveTabs(tabs) {
   // Run classification once for all tabs instead of once per tab
   await _reclassifyAll();
 
+  // Recompute shelf colors from favicons sequentially to avoid storage write races
+  const allShelves = await Store.getShelves();
+  (async () => {
+    for (const shelf of Object.values(allShelves)) {
+      if (!shelf.isUnsorted) await _recomputeShelfColor(shelf.id).catch(() => {});
+    }
+  })();
+
   broadcast({ type: 'archive_batch_done', total });
   showNotification(`Shelve: shelved ${total} tab${total !== 1 ? 's' : ''}`);
 }
 
 async function reArchiveUrl(url) {
   broadcast({ type: 'rearchive_start', url });
-  const [originalActive] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => [null]);
+  const settings = await Store.getSettings();
+  const switchFocus = !!settings.switchFocus;
+  const [originalActive] = switchFocus
+    ? await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => [null])
+    : [null];
   return new Promise((resolve, reject) => {
     chrome.tabs.create({ url, active: false }, async (newTab) => {
       const tabLoadedHandler = async (tabId, info) => {
@@ -490,11 +512,13 @@ async function reArchiveUrl(url) {
           if (existing) {
             await Store.setTab(nUrl, { customTitle: null, customDescription: null });
           }
-          // Always activate to capture thumbnail, regardless of switchFocus setting
-          await _activateAndWait(newTab.id);
-          await archiveTab(newTab);
+          let tabToArchive = newTab;
+          if (switchFocus) {
+            await _activateAndWait(newTab.id);
+            tabToArchive = await chrome.tabs.get(newTab.id).catch(() => newTab);
+          }
+          await archiveTab(tabToArchive, { forceCapture: switchFocus });
           await chrome.tabs.remove(newTab.id);
-          // Restore original focus
           if (originalActive) await chrome.tabs.update(originalActive.id, { active: true }).catch(() => {});
           broadcast({ type: 'rearchive_done', url });
           resolve();
@@ -524,10 +548,12 @@ let _fetchCancelled = false;
 async function fetchMissingData() {
   _fetchCancelled = false;
 
-  const [tabsMap, thumbnails] = await Promise.all([
+  const [tabsMap, thumbnails, settings] = await Promise.all([
     Store.getTabs(),
     Store.getThumbnails(),
+    Store.getSettings(),
   ]);
+  const switchFocus = !!settings.switchFocus;
 
   // Identify tabs that need work
   const needsFetch = Object.values(tabsMap).filter(tab => {
@@ -557,7 +583,7 @@ async function fetchMissingData() {
     broadcast({ type: 'fetch_missing_progress', done, total, current: tab.customTitle || tab.title || tab.url });
 
     try {
-      await _fetchTabData(tab);
+      await _fetchTabData(tab, switchFocus);
       fetched++;
     } catch (e) {
       console.warn('[Shelve] fetchMissingData: failed for', tab.url, e.message);
@@ -575,8 +601,10 @@ async function fetchMissingData() {
  * Opens a single tab URL in a temporary background tab, runs the archiver,
  * then closes the tab. Preserves existing custom title/description.
  */
-async function _fetchTabData(tabMeta) {
-  const [originalActive] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => [null]);
+async function _fetchTabData(tabMeta, switchFocus = false) {
+  const [originalActive] = switchFocus
+    ? await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => [null])
+    : [null];
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.remove(newTabId).catch(() => {});
@@ -594,11 +622,13 @@ async function _fetchTabData(tabMeta) {
         clearTimeout(timeout);
 
         try {
-          // Always activate to capture thumbnail
-          await _activateAndWait(newTab.id);
-          await archiveTab(newTab);
+          let tabToArchive = newTab;
+          if (switchFocus) {
+            await _activateAndWait(newTab.id);
+            tabToArchive = await chrome.tabs.get(newTab.id).catch(() => newTab);
+          }
+          await archiveTab(tabToArchive, { forceCapture: switchFocus });
           await chrome.tabs.remove(newTab.id);
-          // Restore original focus
           if (originalActive) await chrome.tabs.update(originalActive.id, { active: true }).catch(() => {});
           resolve();
         } catch (e) {
@@ -640,6 +670,109 @@ function _domainColor(domain) {
   let h = 0;
   for (const c of domain) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
   return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+/** Extracts dominant color from an SVG string by frequency-counting hex colors. */
+function _dominantColorFromSvg(svgText) {
+  const freq = {};
+  const hexRe = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+  let m;
+  while ((m = hexRe.exec(svgText)) !== null) {
+    let hex = m[1].length === 3
+      ? m[1].split('').map(c => c + c).join('')
+      : m[1];
+    hex = '#' + hex.toLowerCase();
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    if (lum < 20 || lum > 230) continue; // skip near-black and near-white
+    freq[hex] = (freq[hex] || 0) + 1;
+  }
+  const entries = Object.entries(freq);
+  if (!entries.length) return null;
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0];
+}
+
+/** Extracts dominant color from a raster image Blob by sampling pixels on a small canvas. */
+async function _dominantColorFromRaster(blob) {
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const SIZE = 16;
+    const canvas = new OffscreenCanvas(SIZE, SIZE);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, SIZE, SIZE);
+    const { data } = ctx.getImageData(0, 0, SIZE, SIZE);
+    const freq = {};
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue; // skip transparent
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (lum < 20 || lum > 230) continue; // skip near-black and near-white
+      // Quantize to reduce noise (clamp to 240 to avoid overflow past 0xff)
+      const qr = Math.min(240, Math.round(r / 32) * 32);
+      const qg = Math.min(240, Math.round(g / 32) * 32);
+      const qb = Math.min(240, Math.round(b / 32) * 32);
+      const key = `${qr},${qg},${qb}`;
+      freq[key] = (freq[key] || 0) + 1;
+    }
+    const entries = Object.entries(freq);
+    if (!entries.length) return null;
+    entries.sort((a, b) => b[1] - a[1]);
+    const [r, g, b] = entries[0][0].split(',').map(Number);
+    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Fetches a favicon URL and returns its dominant color, or null on failure. */
+async function _dominantColorFromFavicon(favIconUrl) {
+  if (!favIconUrl) return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    const resp = await fetch(favIconUrl, { signal: controller.signal }).finally(() => clearTimeout(timer));
+    if (!resp.ok) return null;
+    const ct = resp.headers.get('content-type') || '';
+    if (ct.includes('svg') || favIconUrl.toLowerCase().endsWith('.svg')) {
+      return _dominantColorFromSvg(await resp.text());
+    }
+    return _dominantColorFromRaster(await resp.blob());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Recomputes the default color of a shelf by extracting the dominant colour
+ * from the favicons of its tabs. Skips unsorted shelves and shelves with no tabs.
+ * Fire-and-forget: updates storage and broadcasts when done.
+ */
+async function _recomputeShelfColor(shelfId) {
+  const [tabsMap, shelvesMap] = await Promise.all([Store.getTabs(), Store.getShelves()]);
+  const shelf = shelvesMap[shelfId];
+  if (!shelf || shelf.isUnsorted) return;
+
+  const shelfTabs = Object.values(tabsMap).filter(t => t.shelfId === shelfId);
+  if (!shelfTabs.length) return;
+
+  // Try each tab's favicon until we get a color
+  for (const tab of shelfTabs) {
+    const color = await _dominantColorFromFavicon(tab.favIconUrl);
+    if (color) {
+      await Store.setShelf(shelfId, { color });
+      broadcast({ type: 'shelves_updated' });
+      return;
+    }
+  }
+  // Fallback to domain hash color
+  const domain = shelf.faviconDomain || _extractDomain(shelfTabs[0]?.url || '');
+  if (domain) {
+    await Store.setShelf(shelfId, { color: _domainColor(domain) });
+    broadcast({ type: 'shelves_updated' });
+  }
 }
 
 /**

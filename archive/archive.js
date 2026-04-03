@@ -7,6 +7,10 @@ import { search as fuzzySearch } from '../lib/fuzzy-search.js';
 import { relativeTime } from '../lib/utils.js';
 import { MISMATCH_THRESHOLD } from '../lib/classifier.js';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const UNSORTED_ID = 'unsorted';
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const state = {
@@ -46,7 +50,8 @@ const btnOpenColTabsNew   = $('btn-open-col-tabs-new');
 const shelfTitle       = $('shelf-title');
 const shelfColorDot    = $('shelf-color-dot');
 const shelfColorInput  = $('shelf-color-input');
-const btnEditShelfTitle = $('btn-edit-shelf-title');
+const btnEditShelfTitle  = $('btn-edit-shelf-title');
+const btnRevertShelf     = $('btn-revert-shelf');
 const brandName        = $('brand-name');
 const tabCountBadge    = $('tab-count-badge');
 
@@ -80,7 +85,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ─── Data loading ─────────────────────────────────────────────────────────────
 
+let _loadSeq = 0;
+
 async function loadData() {
+  const seq = ++_loadSeq;
   const [tabsRes, shelvesRes, thumbsRes, ordersRes, shelfOrderRes] = await Promise.all([
     chrome.storage.local.get('shelve_tabs'),
     chrome.storage.local.get('shelve_collections'),
@@ -88,6 +96,7 @@ async function loadData() {
     chrome.storage.local.get('shelve_tab_orders'),
     chrome.storage.local.get('shelve_col_order'),
   ]);
+  if (seq !== _loadSeq) return; // a newer loadData is in flight; discard stale results
   state.tabs           = tabsRes.shelve_tabs           || {};
   state.shelves        = shelvesRes.shelve_collections || {};
   state.thumbnails     = thumbsRes.shelve_thumbnails   || {};
@@ -189,7 +198,6 @@ function renderShelves() {
   // Bucket every tab into exactly one shelf.
   // Any tab whose shelfId is missing or points to an unknown shelf
   // falls into the reserved 'unsorted' bucket.
-  const UNSORTED_ID = 'unsorted';
   const buckets = new Map(); // shelfId → tab[]
   for (const tab of tabsArr) {
     const shelfId = (tab.shelfId && knownShelfIds.has(tab.shelfId))
@@ -216,13 +224,16 @@ function renderShelves() {
       mismatchBadge.title = `${mismatchCount} tab${mismatchCount !== 1 ? 's' : ''} may fit better elsewhere`;
     }
 
-    // Open-all buttons
+    // Open-all buttons — only stop propagation when there are tabs to open,
+    // so clicking them on an empty shelf falls through to the card click handler.
     const shelfUrls = shelfTabs.map(t => t.url).filter(Boolean);
     card.querySelector('.btn-open-shelf-same').addEventListener('click', e => {
+      if (!shelfUrls.length) return;
       e.stopPropagation();
       openTabs(shelfUrls, false);
     });
     card.querySelector('.btn-open-shelf-new').addEventListener('click', e => {
+      if (!shelfUrls.length) return;
       e.stopPropagation();
       openTabs(shelfUrls, true);
     });
@@ -307,17 +318,21 @@ function renderShelves() {
 // ─── Shelf detail view ───────────────────────────────────────────────────
 
 function renderShelf(shelfId) {
-  const shelf = state.shelves[shelfId];
+  const shelf = state.shelves[shelfId] || (shelfId === UNSORTED_ID
+    ? { id: UNSORTED_ID, title: 'Unsorted', customTitle: null, color: '#94a3b8', isUnsorted: true }
+    : null);
   if (!shelf) { showShelvesView(); return; }
 
   const title = shelf.customTitle || shelf.title || 'Unnamed';
   shelfTitle.textContent = title;
   shelfTitle.dataset.originalTitle = shelf.title || '';
   shelfTitle.dataset.customTitle   = shelf.customTitle || '';
+  shelfTitle.dataset.originalColor = shelf.originalColor || shelf.color || '#4f46e5';
   shelfTitle.contentEditable = 'false';
   shelfColorDot.style.background = shelf.color || '#4f46e5';
   shelfColorInput.value = shelf.color || '#4f46e5';
   brandName.textContent = title;
+  _updateShelfRevertBtn(shelf);
   searchInput.placeholder = `Search in "${title}"…`;
 
   // Get ordered tabs
@@ -375,9 +390,14 @@ function populateTabCard(card, tab) {
   descEl.textContent  = dispDesc;
   dateEl.textContent  = tab.lastArchived ? relativeTime(tab.lastArchived) : '';
 
+  const btnRevertTitle = card.querySelector('.btn-revert-tab-title');
+
   // Show revert button if there are custom values
   if (tab.customTitle || tab.customDescription) {
     revertEl.classList.remove('hidden');
+  }
+  if (tab.customTitle) {
+    btnRevertTitle.classList.remove('hidden');
   }
 
   // ── Mismatch notice ──────────────────────────────────────────────────────
@@ -435,8 +455,22 @@ function populateTabCard(card, tab) {
         data: { customTitle: isCustom ? newVal : null },
       });
       tab.customTitle = isCustom ? newVal : null;
+      btnRevertTitle.classList.toggle('hidden', !tab.customTitle);
       revertEl.classList.toggle('hidden', !tab.customTitle && !tab.customDescription);
     });
+  });
+
+  btnRevertTitle.addEventListener('click', async e => {
+    e.stopPropagation();
+    await chrome.runtime.sendMessage({
+      action: 'update_tab',
+      normalizedUrl: tab.normalizedUrl,
+      data: { customTitle: null },
+    });
+    tab.customTitle = null;
+    titleEl.textContent = tab.title || 'Untitled';
+    btnRevertTitle.classList.add('hidden');
+    revertEl.classList.toggle('hidden', !tab.customDescription);
   });
 
   // ── Inline edit — description ───────────────────────────────────────────
@@ -551,8 +585,37 @@ function bindShelfHeaderEditing() {
       id: state.activeShelfId,
       data: { color },
     });
-    state.shelves[state.activeShelfId].color = color;
+    const shelf = state.shelves[state.activeShelfId];
+    if (shelf) shelf.color = color;
+    _updateShelfRevertBtn(shelf);
   }, 300));
+
+  btnRevertShelf.addEventListener('click', async () => {
+    const shelf = state.shelves[state.activeShelfId];
+    if (!shelf) return;
+    const originalColor = shelfTitle.dataset.originalColor || shelf.color;
+    await chrome.runtime.sendMessage({
+      action: 'update_shelf',
+      id: state.activeShelfId,
+      data: { customTitle: null, color: originalColor },
+    });
+    shelf.customTitle = null;
+    shelf.color = originalColor;
+    shelfColorDot.style.background = originalColor;
+    shelfColorInput.value = originalColor;
+    const title = shelf.title || 'Unnamed';
+    shelfTitle.textContent = title;
+    brandName.textContent = title;
+    _updateShelfRevertBtn(shelf);
+  });
+}
+
+function _updateShelfRevertBtn(shelf) {
+  if (!shelf) return;
+  const originalColor = shelfTitle.dataset.originalColor || shelf.color;
+  const hasCustomTitle = !!shelf.customTitle;
+  const hasCustomColor = shelf.color !== originalColor;
+  btnRevertShelf.classList.toggle('hidden', !hasCustomTitle && !hasCustomColor);
 }
 
 async function saveShelfTitle() {
@@ -569,6 +632,7 @@ async function saveShelfTitle() {
     id: state.activeShelfId,
     data: { customTitle: shelf.customTitle },
   });
+  _updateShelfRevertBtn(shelf);
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
@@ -866,7 +930,14 @@ function openShelfPicker(card, tab) {
   });
   picker.appendChild(newShelfItem);
 
-  const shelves = orderedShelves().filter(s => s.id !== tab.shelfId);
+  const unsortedShelf = Object.values(state.shelves).find(s => s.isUnsorted) ||
+    { id: UNSORTED_ID, title: 'Unsorted', customTitle: null, color: '#94a3b8', isUnsorted: true };
+
+  const shelves = [
+    ...orderedShelves().filter(s => s.id !== tab.shelfId),
+    ...(tab.shelfId !== UNSORTED_ID ? [unsortedShelf] : []),
+  ];
+
   for (const shelf of shelves) {
     const item = document.createElement('div');
     item.className = 'shelf-picker-item';
