@@ -96,7 +96,7 @@ async function loadData() {
 
   // Count only tabs that are visible (assigned to an existing shelf).
   // Orphaned tabs (shelfId null or pointing to a deleted shelf) are
-  // shown under Uncategorized but still counted here via the fallback below.
+  // shown under Unsorted but still counted here via the fallback below.
   const tabCount = Object.keys(state.tabs).length;
   tabCountBadge.textContent = tabCount > 0 ? String(tabCount) : '';
   tabCountBadge.title = `${tabCount} shelved tab${tabCount !== 1 ? 's' : ''}`;
@@ -188,13 +188,13 @@ function renderShelves() {
 
   // Bucket every tab into exactly one shelf.
   // Any tab whose shelfId is missing or points to an unknown shelf
-  // falls into the reserved 'uncategorized' bucket.
-  const UNCAT_ID = 'uncategorized';
+  // falls into the reserved 'unsorted' bucket.
+  const UNSORTED_ID = 'unsorted';
   const buckets = new Map(); // shelfId → tab[]
   for (const tab of tabsArr) {
     const shelfId = (tab.shelfId && knownShelfIds.has(tab.shelfId))
       ? tab.shelfId
-      : UNCAT_ID;
+      : UNSORTED_ID;
     if (!buckets.has(shelfId)) buckets.set(shelfId, []);
     buckets.get(shelfId).push(tab);
   }
@@ -211,7 +211,7 @@ function renderShelves() {
     // Mismatch badge
     const mismatchCount = shelfTabs.filter(t => isMismatched(t)).length;
     const mismatchBadge = card.querySelector('.shelf-mismatch-badge');
-    if (mismatchCount > 0 && !shelf.isUncategorized) {
+    if (mismatchCount > 0 && !shelf.isUnsorted) {
       mismatchBadge.classList.remove('hidden');
       mismatchBadge.title = `${mismatchCount} tab${mismatchCount !== 1 ? 's' : ''} may fit better elsewhere`;
     }
@@ -229,7 +229,7 @@ function renderShelves() {
 
     // Delete shelf button
     const btnDel = card.querySelector('.btn-delete-shelf');
-    if (shelf.isUncategorized) {
+    if (shelf.isUnsorted) {
       btnDel.remove();
     } else {
       btnDel.addEventListener('click', async e => {
@@ -287,18 +287,18 @@ function renderShelves() {
     shelvesGrid.appendChild(card);
   }
 
-  // Render real (non-uncategorized) shelves from buckets
+  // Render real (non-unsorted) shelves from buckets
   for (const shelf of shelves) {
-    if (shelf.isUncategorized) continue;
+    if (shelf.isUnsorted) continue;
     renderShelfCard(shelf, buckets.get(shelf.id) || []);
   }
 
-  // Render Uncategorized: its own bucket (explicit assignments + orphans)
-  const uncatShelf = shelves.find(s => s.isUncategorized) || {
-    id: UNCAT_ID, title: 'Unshelved', customTitle: null,
-    color: '#94a3b8', order: 9999, isUncategorized: true,
+  // Render Unsorted: its own bucket (explicit assignments + orphans)
+  const unsortedShelf = shelves.find(s => s.isUnsorted) || {
+    id: UNSORTED_ID, title: 'Unsorted', customTitle: null,
+    color: '#94a3b8', order: 9999, isUnsorted: true,
   };
-  renderShelfCard(uncatShelf, buckets.get(UNCAT_ID) || []);
+  renderShelfCard(unsortedShelf, buckets.get(UNSORTED_ID) || []);
 
   applyShelfSearch(state.searchQuery);
   bindShelfDrag();
@@ -746,9 +746,9 @@ async function resetTabOrder(shelfId) {
 function orderedShelves() {
   const shelves = Object.values(state.shelves);
   return shelves.sort((a, b) => {
-    // Uncategorized is always last
-    if (a.isUncategorized && !b.isUncategorized) return 1;
-    if (!a.isUncategorized && b.isUncategorized) return -1;
+    // Unsorted is always last
+    if (a.isUnsorted && !b.isUnsorted) return 1;
+    if (!a.isUnsorted && b.isUnsorted) return -1;
     if (state.customShelfOrder) {
       // User has manually ordered — respect that order; new shelves go to the end
       const ia = state.customShelfOrder.indexOf(a.id);
@@ -767,8 +767,8 @@ function orderedShelves() {
 function tabsForShelf(shelfId) {
   const shelf = state.shelves[shelfId];
   const knownShelfIds = new Set(Object.keys(state.shelves));
-  const isUncat = shelf?.isUncategorized || shelfId === 'uncategorized';
-  const all = isUncat
+  const isUnsorted = shelf?.isUnsorted || shelfId === 'unsorted';
+  const all = isUnsorted
     ? Object.values(state.tabs).filter(t =>
         !t.shelfId || !knownShelfIds.has(t.shelfId) || t.shelfId === shelfId)
     : Object.values(state.tabs).filter(t => t.shelfId === shelfId);
@@ -830,7 +830,7 @@ function debounce(fn, ms) {
 function isMismatched(tab) {
   if (tab.fitScore == null) return false;
   const shelf = state.shelves[tab.shelfId];
-  if (shelf?.isUncategorized) return false;   // Uncategorized tabs aren't "mismatched"
+  if (shelf?.isUnsorted) return false;   // Unsorted tabs aren't "mismatched"
   return tab.fitScore < MISMATCH_THRESHOLD;
 }
 

@@ -175,7 +175,7 @@ async function handleMessage(msg) {
       const color = COLORS[Object.keys(existingShelves).length % COLORS.length];
       await Store.setShelf(id, {
         id, title: msg.title, customTitle: null,
-        color, order: 0, isUncategorized: false,
+        color, order: 0, isUnsorted: false,
       });
       broadcast({ type: 'shelves_updated' });
       return { ok: true, id };
@@ -654,7 +654,7 @@ async function _assignByFavicon(nUrl) {
   const existingShelves = await Store.getShelves();
   const domain          = _extractDomain(tab.favIconUrl || tab.url);
 
-  let shelf = Object.values(existingShelves).find(s => !s.isUncategorized && s.faviconDomain === domain);
+  let shelf = Object.values(existingShelves).find(s => !s.isUnsorted && s.faviconDomain === domain);
   if (!shelf) {
     const id = generateId();
     shelf = {
@@ -663,7 +663,7 @@ async function _assignByFavicon(nUrl) {
       customTitle: null,
       color: domain ? _domainColor(domain) : '#94a3b8',
       order: Object.keys(existingShelves).length,
-      isUncategorized: false,
+      isUnsorted: false,
     };
     await Store.setShelf(shelf.id, shelf);
   }
@@ -688,7 +688,7 @@ async function _reclassifyAll() {
 
   for (const tab of allTabs) {
     const domain = _extractDomain(tab.favIconUrl || tab.url);
-    let shelf = Object.values(shelvesToSave).find(s => !s.isUncategorized && s.faviconDomain === domain);
+    let shelf = Object.values(shelvesToSave).find(s => !s.isUnsorted && s.faviconDomain === domain);
     if (!shelf) {
       const id = generateId();
       shelf = {
@@ -697,7 +697,7 @@ async function _reclassifyAll() {
         customTitle: null,
         color: domain ? _domainColor(domain) : '#94a3b8',
         order: Object.keys(shelvesToSave).length,
-        isUncategorized: false,
+        isUnsorted: false,
       };
       shelvesToSave[shelf.id] = shelf;
     }
