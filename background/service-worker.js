@@ -672,9 +672,28 @@ function _domainColor(domain) {
   return PALETTE[Math.abs(h) % PALETTE.length];
 }
 
-/** Extracts dominant color from an SVG string by frequency-counting hex colors. */
-function _dominantColorFromSvg(svgText) {
-  const freq = {};
+/** Returns true if the hex color is achromatic (greyscale). */
+function _isGreyscale(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return Math.max(r, g, b) - Math.min(r, g, b) < 30;
+}
+
+/**
+ * Given a Map<hex, count>, returns the most frequent non-greyscale color,
+ * falling back to the most frequent greyscale if none are chromatic.
+ */
+function _pickDominantColor(freqMap) {
+  if (!freqMap.size) return null;
+  const sorted = [...freqMap.entries()].sort((a, b) => b[1] - a[1]);
+  const chromatic = sorted.find(([hex]) => !_isGreyscale(hex));
+  return chromatic ? chromatic[0] : sorted[0][0];
+}
+
+/** Returns a Map<hex, count> of colors from an SVG string (excluding near-black/white). */
+function _colorFreqFromSvg(svgText) {
+  const freq = new Map();
   const hexRe = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
   let m;
   while ((m = hexRe.exec(svgText)) !== null) {
@@ -687,16 +706,13 @@ function _dominantColorFromSvg(svgText) {
     const b = parseInt(hex.slice(5, 7), 16);
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
     if (lum < 20 || lum > 230) continue; // skip near-black and near-white
-    freq[hex] = (freq[hex] || 0) + 1;
+    freq.set(hex, (freq.get(hex) || 0) + 1);
   }
-  const entries = Object.entries(freq);
-  if (!entries.length) return null;
-  entries.sort((a, b) => b[1] - a[1]);
-  return entries[0][0];
+  return freq;
 }
 
-/** Extracts dominant color from a raster image Blob by sampling pixels on a small canvas. */
-async function _dominantColorFromRaster(blob) {
+/** Returns a Map<hex, count> of quantized colors sampled from a raster image Blob. */
+async function _colorFreqFromRaster(blob) {
   try {
     const bitmap = await createImageBitmap(blob);
     const SIZE = 16;
@@ -704,7 +720,7 @@ async function _dominantColorFromRaster(blob) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(bitmap, 0, 0, SIZE, SIZE);
     const { data } = ctx.getImageData(0, 0, SIZE, SIZE);
-    const freq = {};
+    const freq = new Map();
     for (let i = 0; i < data.length; i += 4) {
       if (data[i + 3] < 128) continue; // skip transparent
       const r = data[i], g = data[i + 1], b = data[i + 2];
@@ -714,21 +730,17 @@ async function _dominantColorFromRaster(blob) {
       const qr = Math.min(240, Math.round(r / 32) * 32);
       const qg = Math.min(240, Math.round(g / 32) * 32);
       const qb = Math.min(240, Math.round(b / 32) * 32);
-      const key = `${qr},${qg},${qb}`;
-      freq[key] = (freq[key] || 0) + 1;
+      const hex = `#${qr.toString(16).padStart(2,'0')}${qg.toString(16).padStart(2,'0')}${qb.toString(16).padStart(2,'0')}`;
+      freq.set(hex, (freq.get(hex) || 0) + 1);
     }
-    const entries = Object.entries(freq);
-    if (!entries.length) return null;
-    entries.sort((a, b) => b[1] - a[1]);
-    const [r, g, b] = entries[0][0].split(',').map(Number);
-    return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+    return freq;
   } catch {
-    return null;
+    return new Map();
   }
 }
 
-/** Fetches a favicon URL and returns its dominant color, or null on failure. */
-async function _dominantColorFromFavicon(favIconUrl) {
+/** Fetches a favicon URL and returns a color frequency Map, or null on failure. */
+async function _colorFreqFromFavicon(favIconUrl) {
   if (!favIconUrl) return null;
   try {
     const controller = new AbortController();
@@ -737,18 +749,19 @@ async function _dominantColorFromFavicon(favIconUrl) {
     if (!resp.ok) return null;
     const ct = resp.headers.get('content-type') || '';
     if (ct.includes('svg') || favIconUrl.toLowerCase().endsWith('.svg')) {
-      return _dominantColorFromSvg(await resp.text());
+      return _colorFreqFromSvg(await resp.text());
     }
-    return _dominantColorFromRaster(await resp.blob());
+    return _colorFreqFromRaster(await resp.blob());
   } catch {
     return null;
   }
 }
 
 /**
- * Recomputes the default color of a shelf by extracting the dominant colour
- * from the favicons of its tabs. Skips unsorted shelves and shelves with no tabs.
- * Fire-and-forget: updates storage and broadcasts when done.
+ * Recomputes the default color of a shelf by merging color-frequency statistics
+ * from all unique favicons, preferring the most frequent non-greyscale color and
+ * falling back to the most frequent grey, then a deterministic domain-hash color.
+ * Skips unsorted shelves. Fire-and-forget.
  */
 async function _recomputeShelfColor(shelfId) {
   const [tabsMap, shelvesMap] = await Promise.all([Store.getTabs(), Store.getShelves()]);
@@ -758,15 +771,25 @@ async function _recomputeShelfColor(shelfId) {
   const shelfTabs = Object.values(tabsMap).filter(t => t.shelfId === shelfId);
   if (!shelfTabs.length) return;
 
-  // Try each tab's favicon until we get a color
+  // Merge frequency maps from each unique favicon URL
+  const combined = new Map();
+  const seenUrls = new Set();
   for (const tab of shelfTabs) {
-    const color = await _dominantColorFromFavicon(tab.favIconUrl);
-    if (color) {
-      await Store.setShelf(shelfId, { color });
-      broadcast({ type: 'shelves_updated' });
-      return;
-    }
+    const url = tab.favIconUrl;
+    if (!url || seenUrls.has(url)) continue;
+    seenUrls.add(url);
+    const freq = await _colorFreqFromFavicon(url);
+    if (!freq) continue;
+    for (const [hex, count] of freq) combined.set(hex, (combined.get(hex) || 0) + count);
   }
+
+  const color = _pickDominantColor(combined);
+  if (color) {
+    await Store.setShelf(shelfId, { color });
+    broadcast({ type: 'shelves_updated' });
+    return;
+  }
+
   // Fallback to domain hash color
   const domain = shelf.faviconDomain || _extractDomain(shelfTabs[0]?.url || '');
   if (domain) {
