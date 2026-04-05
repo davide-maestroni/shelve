@@ -48,6 +48,7 @@ const btnOpenAllNew       = $('btn-open-all-new');
 const btnOpenColTabsSame  = $('btn-open-col-tabs-same');
 const btnOpenColTabsNew   = $('btn-open-col-tabs-new');
 const shelfTitle       = $('shelf-title');
+const shelfHeader      = $('shelf-header');
 const shelfColorDot    = $('shelf-color-dot');
 const shelfColorInput  = $('shelf-color-input');
 const btnEditShelfTitle  = $('btn-edit-shelf-title');
@@ -561,6 +562,7 @@ function bindShelfHeaderEditing() {
   btnEditShelfTitle.addEventListener('click', () => {
     if (!editingShelfTitle) {
       editingShelfTitle = true;
+      shelfHeader.classList.add('editing');
       shelfTitle.contentEditable = 'true';
       shelfTitle.focus();
       const range = document.createRange();
@@ -620,6 +622,7 @@ function _updateShelfRevertBtn(shelf) {
 
 async function saveShelfTitle() {
   editingShelfTitle = false;
+  shelfHeader.classList.remove('editing');
   shelfTitle.contentEditable = 'false';
   const newTitle = shelfTitle.textContent.trim();
   const shelf = state.shelves[state.activeShelfId];

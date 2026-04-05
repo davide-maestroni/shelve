@@ -405,12 +405,22 @@ body {
 .btn-edit-title {
   width: 28px; height: 28px;
   color: var(--text3);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
 }
 .btn-revert-shelf {
   width: 28px; height: 28px;
   color: var(--text3);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
 }
 .btn-revert-shelf:hover { color: var(--accent); }
+.shelf-header:hover .btn-edit-title,
+.shelf-header:hover .btn-revert-shelf,
+.shelf-header:hover .shelf-color-input,
+.shelf-header.editing .btn-edit-title,
+.shelf-header.editing .btn-revert-shelf,
+.shelf-header.editing .shelf-color-input { opacity: 1; }
 .shelf-color-input {
   width: 28px; height: 28px;
   border: none; border-radius: 50%;
@@ -418,6 +428,8 @@ body {
   background: none;
   -webkit-appearance: none;
   overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.15s;
 }
 .shelf-color-input::-webkit-color-swatch-wrapper { padding: 0; }
 .shelf-color-input::-webkit-color-swatch { border: 2px solid var(--border); border-radius: 50%; }
