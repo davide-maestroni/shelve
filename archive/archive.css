@@ -410,11 +410,11 @@ body {
 }
 .btn-revert-shelf {
   width: 28px; height: 28px;
-  color: var(--text3);
+  color: var(--accent);
   opacity: 0;
   transition: opacity 0.15s, color 0.15s;
 }
-.btn-revert-shelf:hover { color: var(--accent); }
+.btn-revert-shelf:hover { color: var(--accent-h); }
 .shelf-header:hover .btn-edit-title,
 .shelf-header:hover .btn-revert-shelf,
 .shelf-header:hover .shelf-color-input,

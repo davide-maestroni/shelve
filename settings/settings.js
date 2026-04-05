@@ -42,6 +42,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-fetch-now').addEventListener('click', startFetch);
   document.getElementById('btn-cancel-fetch').addEventListener('click', cancelFetch);
 
+  // ── Storage usage ─────────────────────────────────────────────────────────
+  loadStorageUsage();
+
+  document.getElementById('btn-clear-thumbnails').addEventListener('click', () =>
+    clearStorage('clear_thumbnails', 'Delete all thumbnails? They can be re-fetched later if focus switching is enabled.')
+  );
+  document.getElementById('btn-clear-content').addEventListener('click', () =>
+    clearStorage('clear_content', 'Delete all cached page text? It can be re-fetched using "Fetch missing data".')
+  );
+  document.getElementById('btn-clear-both').addEventListener('click', () =>
+    clearStorage('clear_thumbnails_and_content', 'Delete all thumbnails and cached page text?')
+  );
 
   // ── Listen for progress from service worker ──────────────────────────────
   chrome.runtime.onMessage.addListener(onMessage);
@@ -165,6 +177,49 @@ function onMessage(msg) {
       btn.disabled = false;
       break;
     }
+  }
+}
+
+// ─── Storage usage ────────────────────────────────────────────────────────────
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+async function loadStorageUsage() {
+  // Local storage: chrome.storage.local has no quota API, use QUOTA_BYTES constant
+  // unlimitedStorage permission means no enforced quota, but we still estimate usage
+  const LOCAL_QUOTA = chrome.storage.local.QUOTA_BYTES ?? (5 * 1024 * 1024); // 5 MB default
+  chrome.storage.local.getBytesInUse(null, localUsed => {
+    const pct = Math.min(100, (localUsed / LOCAL_QUOTA) * 100);
+    document.getElementById('local-storage-fill').style.width = `${pct}%`;
+    document.getElementById('local-storage-label').textContent =
+      `${formatBytes(localUsed)} / ${formatBytes(LOCAL_QUOTA)}`;
+  });
+
+  // Sync storage: hard quota is 102,400 bytes
+  const SYNC_QUOTA = chrome.storage.sync.QUOTA_BYTES;
+  chrome.storage.sync.getBytesInUse(null, syncUsed => {
+    const pct = Math.min(100, (syncUsed / SYNC_QUOTA) * 100);
+    document.getElementById('sync-storage-fill').style.width = `${pct}%`;
+    document.getElementById('sync-storage-fill').style.background =
+      pct > 80 ? '#ef4444' : pct > 60 ? '#f59e0b' : '';
+    document.getElementById('sync-storage-label').textContent =
+      `${formatBytes(syncUsed)} / ${formatBytes(SYNC_QUOTA)}`;
+  });
+}
+
+async function clearStorage(action, message) {
+  if (!confirm(message)) return;
+  const btns = ['btn-clear-thumbnails', 'btn-clear-content', 'btn-clear-both'];
+  btns.forEach(id => { document.getElementById(id).disabled = true; });
+  try {
+    await chrome.runtime.sendMessage({ action });
+  } finally {
+    btns.forEach(id => { document.getElementById(id).disabled = false; });
+    loadStorageUsage();
   }
 }
 

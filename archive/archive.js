@@ -161,6 +161,9 @@ function showShelvesView() {
 function showShelfView(shelfId) {
   state.view = 'shelf';
   state.activeShelfId = shelfId;
+  // Capture the original color once; not overwritten on subsequent re-renders
+  const shelf = state.shelves[shelfId];
+  _originalShelfColor = shelf?.color || '#4f46e5';
   viewShelves.classList.add('hidden');
   viewShelf.classList.remove('hidden');
   btnBack.classList.remove('hidden');
@@ -328,7 +331,7 @@ function renderShelf(shelfId) {
   shelfTitle.textContent = title;
   shelfTitle.dataset.originalTitle = shelf.title || '';
   shelfTitle.dataset.customTitle   = shelf.customTitle || '';
-  shelfTitle.dataset.originalColor = shelf.originalColor || shelf.color || '#4f46e5';
+  // _originalShelfColor is set once in showShelfView; don't overwrite on re-renders
   shelfTitle.contentEditable = 'false';
   shelfColorDot.style.background = shelf.color || '#4f46e5';
   shelfColorInput.value = shelf.color || '#4f46e5';
@@ -557,6 +560,7 @@ function toggleEditField(el, onSave) {
 // ─── Shelf title & color editing ────────────────────────────────────────
 
 let editingShelfTitle = false;
+let _originalShelfColor = null; // set once when entering shelf view, not overwritten on re-renders
 
 function bindShelfHeaderEditing() {
   btnEditShelfTitle.addEventListener('click', () => {
@@ -595,7 +599,7 @@ function bindShelfHeaderEditing() {
   btnRevertShelf.addEventListener('click', async () => {
     const shelf = state.shelves[state.activeShelfId];
     if (!shelf) return;
-    const originalColor = shelfTitle.dataset.originalColor || shelf.color;
+    const originalColor = _originalShelfColor || shelf.color;
     await chrome.runtime.sendMessage({
       action: 'update_shelf',
       id: state.activeShelfId,
@@ -614,9 +618,9 @@ function bindShelfHeaderEditing() {
 
 function _updateShelfRevertBtn(shelf) {
   if (!shelf) return;
-  const originalColor = shelfTitle.dataset.originalColor || shelf.color;
+  const originalColor = _originalShelfColor || shelf.color;
   const hasCustomTitle = !!shelf.customTitle;
-  const hasCustomColor = shelf.color !== originalColor;
+  const hasCustomColor = shelfColorInput.value.toLowerCase() !== originalColor.toLowerCase();
   btnRevertShelf.classList.toggle('hidden', !hasCustomTitle && !hasCustomColor);
 }
 

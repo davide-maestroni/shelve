@@ -68,13 +68,22 @@ chrome.runtime.onInstalled.addListener(async () => {
   await Store.bootstrapFromSync();
   broadcast({ type: 'ready' });
   _maybeAutoFetch();
+  _recomputeAllShelfColors();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   setActionIcon();
   await Store.bootstrapFromSync().catch(console.warn);
   _maybeAutoFetch();
+  _recomputeAllShelfColors();
 });
+
+async function _recomputeAllShelfColors() {
+  const allShelves = await Store.getShelves();
+  for (const shelf of Object.values(allShelves)) {
+    if (!shelf.isUnsorted) await _recomputeShelfColor(shelf.id).catch(() => {});
+  }
+}
 
 async function _maybeAutoFetch() {
   const settings = await Store.getSettings();
@@ -142,13 +151,21 @@ async function handleMessage(msg) {
       return { ok: true };
     }
     case 'archive_close_all': {
+      const archiveUrl = chrome.runtime.getURL('archive/archive.html');
       const tabs = await chrome.tabs.query({ currentWindow: true });
-      const validTabs = tabs.filter(isArchivable);
+      const windowId = tabs[0]?.windowId;
+      const validTabs = tabs.filter(t => isArchivable(t) && !t.url.startsWith(archiveUrl));
       await archiveTabs(validTabs);
       const ids = validTabs.map(t => t.id);
       if (ids.length) {
-        // Ensure the Shelve archive page stays open so the window isn't left empty
-        await openArchivePage();
+        // Ensure the archive tab is in the SAME window before removing the archived tabs,
+        // so the window is never left with zero tabs (which would close it).
+        const existingInWindow = await chrome.tabs.query({ url: archiveUrl, windowId });
+        if (existingInWindow.length > 0) {
+          await chrome.tabs.update(existingInWindow[0].id, { active: true });
+        } else {
+          await chrome.tabs.create({ url: archiveUrl, windowId, active: true });
+        }
         await chrome.tabs.remove(ids);
       }
       return { ok: true, count: validTabs.length };
@@ -224,6 +241,26 @@ async function handleMessage(msg) {
       })();
       return { ok: true };
     }
+    case 'clear_thumbnails': {
+      await chrome.storage.local.remove('shelve_thumbnails');
+      broadcast({ type: 'tabs_updated' });
+      return { ok: true };
+    }
+    case 'clear_content': {
+      const tabs = await Store.getTabs();
+      for (const tab of Object.values(tabs)) tab.content = '';
+      await chrome.storage.local.set({ shelve_tabs: tabs });
+      broadcast({ type: 'tabs_updated' });
+      return { ok: true };
+    }
+    case 'clear_thumbnails_and_content': {
+      await chrome.storage.local.remove('shelve_thumbnails');
+      const tabs = await Store.getTabs();
+      for (const tab of Object.values(tabs)) tab.content = '';
+      await chrome.storage.local.set({ shelve_tabs: tabs });
+      broadcast({ type: 'tabs_updated' });
+      return { ok: true };
+    }
     case 'delete_all': {
       // Clear data keys from local (preserve nothing — thumbnails, tabs, shelves, orders)
       await chrome.storage.local.remove([
@@ -256,6 +293,12 @@ async function handleMessage(msg) {
       // Remove tabs and their thumbnails in parallel
       await Promise.all(toDelete.map(t => Store.removeTab(t.normalizedUrl)));
       await Store.removeShelf(msg.id);
+      // Clean up tab order entry for this shelf
+      const orders = await Store.getTabOrders();
+      if (orders[msg.id]) {
+        delete orders[msg.id];
+        await chrome.storage.local.set({ shelve_tab_orders: orders });
+      }
       await _refreshFitScores();
       broadcast({ type: 'tabs_updated' });
       broadcast({ type: 'shelves_updated' });
@@ -483,12 +526,7 @@ async function archiveTabs(tabs) {
   await _reclassifyAll();
 
   // Recompute shelf colors from favicons sequentially to avoid storage write races
-  const allShelves = await Store.getShelves();
-  (async () => {
-    for (const shelf of Object.values(allShelves)) {
-      if (!shelf.isUnsorted) await _recomputeShelfColor(shelf.id).catch(() => {});
-    }
-  })();
+  _recomputeAllShelfColors();
 
   broadcast({ type: 'archive_batch_done', total });
   showNotification(`Shelve: shelved ${total} tab${total !== 1 ? 's' : ''}`);
@@ -691,23 +729,46 @@ function _pickDominantColor(freqMap) {
   return chromatic ? chromatic[0] : sorted[0][0];
 }
 
-/** Returns a Map<hex, count> of colors from an SVG string (excluding near-black/white). */
+// Named CSS colors → hex (only those commonly used as favicon fill colors)
+const _NAMED_COLORS = {
+  black: '#000000', white: '#ffffff', red: '#ff0000', green: '#008000',
+  blue: '#0000ff', yellow: '#ffff00', orange: '#ffa500', purple: '#800080',
+  pink: '#ffc0cb', gray: '#808080', grey: '#808080', navy: '#000080',
+  teal: '#008080', cyan: '#00ffff', magenta: '#ff00ff', lime: '#00ff00',
+  brown: '#a52a2a', gold: '#ffd700', silver: '#c0c0c0', coral: '#ff7f50',
+  indigo: '#4b0082', violet: '#ee82ee', crimson: '#dc143c', turquoise: '#40e0d0',
+};
+
+/** Returns a Map<hex, count> of colors from an SVG string (excluding near-white). */
 function _colorFreqFromSvg(svgText) {
   const freq = new Map();
-  const hexRe = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
-  let m;
-  while ((m = hexRe.exec(svgText)) !== null) {
-    let hex = m[1].length === 3
-      ? m[1].split('').map(c => c + c).join('')
-      : m[1];
-    hex = '#' + hex.toLowerCase();
+
+  const addHex = (raw) => {
+    let hex;
+    if (raw.startsWith('#')) {
+      const h = raw.slice(1);
+      hex = '#' + (h.length === 3 ? h.split('').map(c => c + c).join('') : h).toLowerCase();
+    } else {
+      hex = _NAMED_COLORS[raw.toLowerCase()];
+      if (!hex) return;
+    }
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    if (lum < 20 || lum > 230) continue; // skip near-black and near-white
+    if (lum > 230) return; // skip near-white
     freq.set(hex, (freq.get(hex) || 0) + 1);
-  }
+  };
+
+  // Match hex colors
+  const hexRe = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+  let m;
+  while ((m = hexRe.exec(svgText)) !== null) addHex(m[0]);
+
+  // Match named colors in fill/stroke/stop-color attributes
+  const namedRe = /(?:fill|stroke|stop-color)\s*[:=]\s*["']?\s*([a-zA-Z]+)\b/g;
+  while ((m = namedRe.exec(svgText)) !== null) addHex(m[1]);
+
   return freq;
 }
 
@@ -725,7 +786,7 @@ async function _colorFreqFromRaster(blob) {
       if (data[i + 3] < 128) continue; // skip transparent
       const r = data[i], g = data[i + 1], b = data[i + 2];
       const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      if (lum < 20 || lum > 230) continue; // skip near-black and near-white
+      if (lum > 230) continue; // skip near-white (background) pixels
       // Quantize to reduce noise (clamp to 240 to avoid overflow past 0xff)
       const qr = Math.min(240, Math.round(r / 32) * 32);
       const qg = Math.min(240, Math.round(g / 32) * 32);
@@ -742,13 +803,24 @@ async function _colorFreqFromRaster(blob) {
 /** Fetches a favicon URL and returns a color frequency Map, or null on failure. */
 async function _colorFreqFromFavicon(favIconUrl) {
   if (!favIconUrl) return null;
+  const freq = await _fetchAndParseFreq(favIconUrl);
+  // If a dark-theme variant yielded no usable colors, try the light variant
+  if (freq !== null && freq.size === 0 && /[\-_]dark\b/i.test(favIconUrl)) {
+    const lightUrl = favIconUrl.replace(/[\-_]dark(\.[^.]+)$/i, '$1');
+    const lightFreq = await _fetchAndParseFreq(lightUrl);
+    if (lightFreq && lightFreq.size > 0) return lightFreq;
+  }
+  return freq;
+}
+
+async function _fetchAndParseFreq(url) {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const resp = await fetch(favIconUrl, { signal: controller.signal }).finally(() => clearTimeout(timer));
+    const resp = await fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
     if (!resp.ok) return null;
     const ct = resp.headers.get('content-type') || '';
-    if (ct.includes('svg') || favIconUrl.toLowerCase().endsWith('.svg')) {
+    if (ct.includes('svg') || url.toLowerCase().endsWith('.svg')) {
       return _colorFreqFromSvg(await resp.text());
     }
     return _colorFreqFromRaster(await resp.blob());

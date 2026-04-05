@@ -99,6 +99,53 @@
     </div>
 
     <div class="settings-card">
+      <h1 class="settings-title">Storage</h1>
+
+      <div class="setting-row storage-usage-row">
+        <div class="setting-info">
+          <span class="setting-label">Sync storage</span>
+          <p class="setting-desc">Metadata synced across your devices (no thumbnails or page text).</p>
+        </div>
+        <div class="storage-meter-wrap">
+          <div class="storage-bar"><div id="sync-storage-fill" class="storage-bar-fill"></div></div>
+          <span id="sync-storage-label" class="storage-label">—</span>
+        </div>
+      </div>
+
+      <div class="setting-row storage-usage-row">
+        <div class="setting-info">
+          <span class="setting-label">Local storage</span>
+          <p class="setting-desc">Tabs, thumbnails, page text and settings stored on this device.</p>
+        </div>
+        <div class="storage-meter-wrap">
+          <div class="storage-bar"><div id="local-storage-fill" class="storage-bar-fill"></div></div>
+          <span id="local-storage-label" class="storage-label">—</span>
+        </div>
+      </div>
+
+      <div class="setting-row setting-row-storage-actions">
+        <div class="setting-info">
+          <span class="setting-label">Free up space</span>
+          <p class="setting-desc">Remove bulky data from local storage. Tab metadata and sync data are not affected.</p>
+        </div>
+        <div class="storage-actions">
+          <button class="action-btn action-btn-danger" id="btn-clear-thumbnails">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
+            Delete thumbnails
+          </button>
+          <button class="action-btn action-btn-danger" id="btn-clear-content">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+            Delete page text
+          </button>
+          <button class="action-btn action-btn-danger" id="btn-clear-both">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            Delete both
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
       <h1 class="settings-title">About</h1>
       <div class="about-row">
         <img src="../icons/icon48.svg" alt="" class="about-icon">
