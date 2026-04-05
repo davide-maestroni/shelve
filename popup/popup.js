@@ -28,18 +28,28 @@ let busy = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   btnArchiveCurrent.addEventListener('click', () => doAction('archive_current'));
-  btnArchiveAll.addEventListener('click', () => doAction('archive_all'));
+  btnArchiveAll.addEventListener('click', () => confirmArchiveAll(() => doAction('archive_all')));
   btnArchiveCloseCurrent.addEventListener('click', () =>
     confirm('Shelve and close the current tab?', () => doAction('archive_close_current'))
   );
   btnArchiveCloseAll.addEventListener('click', () =>
-    confirm('Shelve and close ALL open tabs in this window?', () => doAction('archive_close_all'))
+    confirmArchiveAll(() => doAction('archive_close_all'), true)
   );
   btnBrowse.addEventListener('click', openArchive);
   btnSettings.addEventListener('click', openSettings);
 
   chrome.runtime.onMessage.addListener(onMessage);
 });
+
+async function confirmArchiveAll(onOk, andClose = false) {
+  const settings = await chrome.storage.local.get('shelve_settings');
+  const switchFocus = !!settings.shelve_settings?.switchFocus;
+  const closeNote = andClose ? ' and close them' : '';
+  const focusNote = switchFocus
+    ? 'Focus will switch to each tab automatically during the process.'
+    : 'Thumbnails may not be captured correctly — enable "Switch Focus" in settings for best results.';
+  confirm(`Shelve all open tabs${closeNote}?\n\n${focusNote}`, onOk);
+}
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 

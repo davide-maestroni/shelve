@@ -13,8 +13,6 @@
   --shadow: 0 1px 3px rgba(0,0,0,.08);
   --radius: 8px;
   --radius-sm: 6px;
-  --browse-bg: #4f46e5;
-  --browse-hover: #4338ca;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,8 +25,6 @@
     --accent-hover: #a5b4fc;
     --accent-light: #312e81;
     --border: #3730a3;
-    --browse-bg: #6366f1;
-    --browse-hover: #818cf8;
   }
 }
 
@@ -111,12 +107,10 @@ body {
 .btn-danger:hover { background: var(--danger-light); color: var(--danger); }
 
 .btn-browse {
-  background: var(--browse-bg);
-  color: #fff;
-  font-weight: 600;
   margin-top: 2px;
+  color: var(--accent);
 }
-.btn-browse:hover { background: var(--browse-hover); }
+.btn-browse:hover { background: var(--accent-light); }
 
 /* Small buttons for confirm dialog */
 .btn-sm { padding: 6px 14px; font-size: 12px; width: auto; }
@@ -192,6 +186,7 @@ body {
 .confirm-message {
   font-size: 13px;
   color: var(--text);
+  white-space: pre-line;
   margin-bottom: 12px;
   line-height: 1.5;
 }
