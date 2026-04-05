@@ -8,7 +8,7 @@ const btnArchiveCurrent     = $('btn-archive-current');
 const btnArchiveAll         = $('btn-archive-all');
 const btnArchiveCloseCurrent= $('btn-archive-close-current');
 const btnArchiveCloseAll    = $('btn-archive-close-all');
-const btnBrowse             = $('btn-browse');
+const btnBrand              = $('btn-brand');
 const btnSettings           = $('btn-settings');
 
 const statusEl              = $('status');
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnArchiveCloseAll.addEventListener('click', () =>
     confirmArchiveAll(() => doAction('archive_close_all'), true)
   );
-  btnBrowse.addEventListener('click', openArchive);
+  btnBrand.addEventListener('click', openArchive);
   btnSettings.addEventListener('click', openSettings);
 
   chrome.runtime.onMessage.addListener(onMessage);
