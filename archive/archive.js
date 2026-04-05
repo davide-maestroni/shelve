@@ -860,8 +860,8 @@ function applyListView() {
   tabsGrid.classList.toggle('list-view', state.listView);
   const iconGrid = btnToggleView.querySelector('.icon-grid');
   const iconList = btnToggleView.querySelector('.icon-list');
-  if (iconGrid) iconGrid.style.display = state.listView ? 'none' : '';
-  if (iconList) iconList.style.display = state.listView ? '' : 'none';
+  if (iconGrid) iconGrid.style.display = state.listView ? '' : 'none';
+  if (iconList) iconList.style.display = state.listView ? 'none' : '';
   btnToggleView.title = state.listView ? 'Switch to grid view' : 'Switch to list view';
   btnToggleView.setAttribute('aria-label', btnToggleView.title);
 }

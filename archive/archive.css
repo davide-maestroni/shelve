@@ -773,10 +773,51 @@ body {
 .hidden { display: none !important; }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────────── */
-@media (max-width: 600px) {
+
+/* ── Medium (≤ 900px) ── tighter grid, narrower search */
+@media (max-width: 900px) {
+  .topbar-center { max-width: 320px; }
+  .shelves-grid  { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .tabs-grid     { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+
+/* ── Small (≤ 640px) ── single-column, compact topbar */
+@media (max-width: 640px) {
+  /* Topbar */
+  .topbar-inner  { padding: 0 12px; gap: 8px; }
+  .topbar-center { max-width: none; flex: 1; min-width: 0; }
+  .brand-name    { display: none; }
+  .tab-count-badge { display: none; }
+
+  /* Danger buttons: icon only (hide text label) */
+  .btn-topbar-danger { padding: 6px; gap: 0; font-size: 0; }
+  .btn-topbar-danger svg { width: 16px; height: 16px; }
+
+  /* Main content */
   .main { padding: 16px 12px 40px; }
-  .topbar-inner { padding: 0 12px; gap: 10px; }
-  .brand-name { display: none; }
+
+  /* Single-column grids */
   .shelves-grid,
   .tabs-grid { grid-template-columns: 1fr; }
+
+  /* Shelf header — allow title to wrap */
+  .shelf-header { flex-wrap: wrap; }
+  .shelf-title  { font-size: 18px; }
+
+  /* Tab thumbnail height */
+  .tab-thumb-wrap { height: 120px; }
+
+  /* Shelf card thumbs — fewer visible */
+  .shelf-card-thumbs { height: 36px; }
+  .shelf-card-thumb,
+  .shelf-card-thumb-placeholder { width: 58px; height: 36px; }
+}
+
+/* ── Extra small (≤ 400px) ── very tight */
+@media (max-width: 400px) {
+  .topbar-inner  { padding: 0 8px; gap: 6px; }
+  .brand-icon    { display: none; }
+  .main          { padding: 12px 8px 32px; }
+  .btn-icon-only { width: 30px; height: 30px; }
+  .shelf-title   { font-size: 16px; }
 }
