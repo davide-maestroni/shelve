@@ -55,6 +55,7 @@ const btnEditShelfTitle  = $('btn-edit-shelf-title');
 const btnRevertShelf     = $('btn-revert-shelf');
 const brandName        = $('brand-name');
 const tabCountBadge    = $('tab-count-badge');
+const btnAddUrl        = $('btn-add-url');
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -1043,6 +1044,105 @@ async function moveTab(tab, targetShelfId) {
   renderCurrentView();
 }
 
+// ─── Add URL modal ────────────────────────────────────────────────────────────
+
+function openAddUrlModal(presetShelfId) {
+  const overlay   = $('add-url-overlay');
+  const input     = $('add-url-input');
+  const shelfSel  = $('add-url-shelf');
+  const errorEl   = $('add-url-error');
+  const progress  = $('add-url-progress');
+  const submitBtn = $('add-url-submit');
+  const cancelBtn = $('add-url-cancel');
+
+  // Populate shelf selector
+  shelfSel.innerHTML = '<option value="">Auto-assign</option>';
+  const shelves = Object.values(state.shelves)
+    .filter(s => !s.isUnsorted)
+    .sort((a, b) => (a.customTitle || a.title).localeCompare(b.customTitle || b.title));
+  for (const s of shelves) {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.customTitle || s.title;
+    shelfSel.appendChild(opt);
+  }
+  const unsorted = Object.values(state.shelves).find(s => s.isUnsorted);
+  if (unsorted) {
+    const opt = document.createElement('option');
+    opt.value = unsorted.id;
+    opt.textContent = 'Unsorted';
+    shelfSel.appendChild(opt);
+  }
+  if (presetShelfId) shelfSel.value = presetShelfId;
+
+  // Reset state
+  input.value = '';
+  errorEl.classList.add('hidden');
+  errorEl.textContent = '';
+  progress.classList.add('hidden');
+  submitBtn.disabled = false;
+  overlay.classList.remove('hidden');
+  input.focus();
+
+  const close = () => overlay.classList.add('hidden');
+
+  const submit = async () => {
+    const url = input.value.trim();
+    if (!url) { showError('Please enter a URL.'); return; }
+    errorEl.classList.add('hidden');
+    progress.classList.remove('hidden');
+    submitBtn.disabled = true;
+    cancelBtn.disabled = true;
+    try {
+      const res = await chrome.runtime.sendMessage({
+        action: 'archive_manual_url',
+        url,
+        shelfId: shelfSel.value || null,
+      });
+      if (!res?.ok) {
+        showError(res?.error || 'Failed to archive URL.');
+        return;
+      }
+      close();
+    } catch (e) {
+      showError(e.message || 'Unexpected error.');
+    } finally {
+      progress.classList.add('hidden');
+      submitBtn.disabled = false;
+      cancelBtn.disabled = false;
+    }
+  };
+
+  const showError = msg => {
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+  };
+
+  // Keyboard: Enter submits, Escape closes
+  const onKeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    if (e.key === 'Escape') close();
+  };
+
+  // Clean up listeners when closed
+  const observer = new MutationObserver(() => {
+    if (overlay.classList.contains('hidden')) {
+      submitBtn.removeEventListener('click', submit);
+      cancelBtn.removeEventListener('click', close);
+      overlay.removeEventListener('keydown', onKeydown);
+      overlay.removeEventListener('click', onOverlayClick);
+      observer.disconnect();
+    }
+  });
+  observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+
+  const onOverlayClick = e => { if (e.target === overlay) close(); };
+  submitBtn.addEventListener('click', submit);
+  cancelBtn.addEventListener('click', close);
+  overlay.addEventListener('keydown', onKeydown);
+  overlay.addEventListener('click', onOverlayClick);
+}
+
 /** Promise-based confirm dialog (replaces window.confirm which is blocked in extensions). */
 function confirmDialog(message, okLabel = 'Confirm') {
   return new Promise(resolve => {
@@ -1192,6 +1292,10 @@ function bindEvents() {
     if (!title) return;
     await createShelf(title);
   });
+
+  btnAddUrl.addEventListener('click', () =>
+    openAddUrlModal(state.view === 'shelf' ? state.activeShelfId : null)
+  );
 
   btnResetOrder.addEventListener('click', () => {
     if (state.view === 'shelves') resetShelfOrder();

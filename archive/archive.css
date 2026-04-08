@@ -781,6 +781,109 @@ body {
   50% { opacity: 1; }
 }
 
+/* ─── Add URL modal ──────────────────────────────────────────────────────────── */
+.add-url-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.add-url-box {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.add-url-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.add-url-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-top: 4px;
+}
+.add-url-input,
+.add-url-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.add-url-input:focus,
+.add-url-select:focus { border-color: var(--accent); }
+.add-url-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 2px;
+}
+.add-url-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+.add-url-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.add-url-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.add-url-btn-secondary {
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.add-url-btn-secondary:hover { background: var(--border2); }
+.add-url-btn-primary {
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.add-url-btn-primary:hover { background: var(--accent-h); }
+.add-url-btn-primary:disabled,
+.add-url-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ─── Utils ──────────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 

@@ -170,6 +170,86 @@ async function handleMessage(msg) {
       }
       return { ok: true, count: validTabs.length };
     }
+    case 'archive_manual_url': {
+      const userUrl = msg.url?.trim();
+      if (!userUrl) return { ok: false, error: 'No URL provided' };
+      let parsed;
+      try { parsed = new URL(userUrl); } catch {
+        return { ok: false, error: 'Invalid URL' };
+      }
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return { ok: false, error: 'Only http and https URLs are supported' };
+      }
+      const nUrl = normalizeUrl(userUrl);
+      broadcast({ type: 'archive_start', url: nUrl });
+      // Open a background tab so we can extract content and favicon
+      const tempTab = await chrome.tabs.create({ url: userUrl, active: false });
+      try {
+        // Wait for the tab to fully load (up to 20s)
+        await new Promise(resolve => {
+          const timeout = setTimeout(resolve, 20000);
+          const listener = (tabId, info) => {
+            if (tabId === tempTab.id && info.status === 'complete') {
+              clearTimeout(timeout);
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
+            }
+          };
+          chrome.tabs.onUpdated.addListener(listener);
+        });
+        const freshTab = await chrome.tabs.get(tempTab.id).catch(() => tempTab);
+        // Extract content via content script
+        let extracted = { title: freshTab.title, content: '', metaDescription: '', url: userUrl };
+        try {
+          const [result] = await chrome.scripting.executeScript({
+            target: { tabId: freshTab.id },
+            files: ['content/content-script.js'],
+          });
+          if (result?.result?.success) extracted = result.result;
+        } catch (e) {
+          console.warn('[Shelve] Content extraction failed for', userUrl, e.message);
+        }
+        // Generate description
+        const existing = await Store.getTab(nUrl);
+        const textForSummary = extracted.content || extracted.metaDescription || '';
+        const description = textForSummary.length > 50
+          ? Summarizer.summarize(textForSummary, 3)
+          : (extracted.metaDescription || truncateTitle(extracted.title, 200));
+        // Save — always use the user's original URL, not any redirected URL
+        const now = Date.now();
+        const targetShelfId = msg.shelfId || null;
+        await Store.setTab(nUrl, {
+          url: userUrl,
+          normalizedUrl: nUrl,
+          favIconUrl: freshTab.favIconUrl || '',
+          title: extracted.title || freshTab.title || nUrl,
+          customTitle: existing?.customTitle ?? null,
+          description,
+          customDescription: existing?.customDescription ?? null,
+          content: extracted.content,
+          firstArchived: existing?.firstArchived ?? now,
+          lastArchived: now,
+          shelfId: targetShelfId ?? existing?.shelfId ?? null,
+        });
+        // Shelf assignment
+        if (targetShelfId) {
+          await _refreshFitScores();
+        } else if (!existing?.shelfId) {
+          await _assignByFavicon(nUrl);
+        } else {
+          await _refreshFitScores();
+        }
+        const savedTab = (await Store.getTabs())[nUrl];
+        if (savedTab?.shelfId) _recomputeShelfColor(savedTab.shelfId).catch(() => {});
+        broadcast({ type: 'archive_done', url: nUrl });
+        return { ok: true, normalizedUrl: nUrl };
+      } catch (e) {
+        broadcast({ type: 'archive_error', url: nUrl, message: e.message });
+        return { ok: false, error: e.message };
+      } finally {
+        chrome.tabs.remove(tempTab.id).catch(() => {});
+      }
+    }
     case 'rearchive': {
       await reArchiveUrl(msg.url);
       return { ok: true };

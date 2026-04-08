@@ -38,6 +38,9 @@
         <button id="btn-new-shelf" class="btn-icon-only hidden" title="Create new shelf" aria-label="New shelf">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
         </button>
+        <button id="btn-add-url" class="btn-icon-only" title="Add a URL to the archive" aria-label="Add URL">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/></svg>
+        </button>
         <button id="btn-open-all-same" class="btn-icon-only hidden" title="Open all shelved tabs in this window" aria-label="Open all tabs in this window">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v1H3V5zM3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm7 1l-3 3h2v3h2v-3h2l-3-3z" clip-rule="evenodd"/></svg>
         </button>
@@ -198,6 +201,26 @@
       </div>
     </div>
   </template>
+
+  <!-- ─── Add URL modal ───────────────────────────────── -->
+  <div id="add-url-overlay" class="add-url-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="add-url-title">
+    <div class="add-url-box">
+      <h2 class="add-url-title" id="add-url-title">Add URL to archive</h2>
+      <label class="add-url-label" for="add-url-input">URL</label>
+      <input id="add-url-input" type="url" class="add-url-input" placeholder="https://example.com" autocomplete="off" spellcheck="false">
+      <label class="add-url-label" for="add-url-shelf">Add to shelf</label>
+      <select id="add-url-shelf" class="add-url-select"></select>
+      <p id="add-url-error" class="add-url-error hidden"></p>
+      <div class="add-url-progress hidden" id="add-url-progress">
+        <span class="add-url-spinner"></span>
+        <span id="add-url-progress-text">Fetching page…</span>
+      </div>
+      <div class="add-url-btns">
+        <button id="add-url-cancel" class="add-url-btn-secondary">Cancel</button>
+        <button id="add-url-submit" class="add-url-btn-primary">Add</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="archive.js"></script>
 </body>
