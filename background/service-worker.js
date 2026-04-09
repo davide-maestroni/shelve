@@ -3,7 +3,7 @@
  * Orchestrates archiving, storage, and classification.
  */
 
-import { normalizeUrl, generateId } from '../lib/utils.js';
+import { normalizeUrl, generateId, truncate } from '../lib/utils.js';
 import { Summarizer } from '../lib/summarizer.js';
 import { Classifier } from '../lib/classifier.js';
 import * as Store from '../lib/storage.js';
@@ -214,7 +214,7 @@ async function handleMessage(msg) {
         const textForSummary = extracted.content || extracted.metaDescription || '';
         const description = textForSummary.length > 50
           ? Summarizer.summarize(textForSummary, 3)
-          : (extracted.metaDescription || truncateTitle(extracted.title, 200));
+          : (extracted.metaDescription || truncate(extracted.title, 200));
         // Save — always use the user's original URL, not any redirected URL
         const now = Date.now();
         const targetShelfId = msg.shelfId || null;
@@ -481,7 +481,7 @@ async function archiveTab(tab, { skipClassification = false, forceCapture = fals
     const textForSummary = extracted.content || extracted.metaDescription || '';
     const description = textForSummary.length > 50
       ? Summarizer.summarize(textForSummary, 3)
-      : (extracted.metaDescription || truncateTitle(extracted.title, 200));
+      : (extracted.metaDescription || truncate(extracted.title, 200));
 
     // 4. Save to storage
     const now = Date.now();
@@ -1070,10 +1070,6 @@ function showNotification(message) {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 
-function truncateTitle(title, max) {
-  if (!title || title.length <= max) return title || '';
-  return title.slice(0, max).trimEnd() + '…';
-}
 
 /**
  * Returns true if the captured data-URI contains a meaningful (non-blank) image.

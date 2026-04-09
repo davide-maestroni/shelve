@@ -1,29 +1,4 @@
-:root {
-  --bg:         #f9fafb;
-  --bg-card:    #ffffff;
-  --bg-topbar:  #ffffff;
-  --text:       #111827;
-  --text2:      #6b7280;
-  --text3:      #9ca3af;
-  --accent:     #4f46e5;
-  --border:     #e5e7eb;
-  --border2:    #f3f4f6;
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.06);
-  --radius:     12px;
-  --radius-sm:  8px;
-  --topbar-h:   56px;
-}
-[data-theme="dark"] {
-  --bg:         #0f172a;
-  --bg-card:    #1e293b;
-  --bg-topbar:  #1e293b;
-  --text:       #f1f5f9;
-  --text2:      #94a3b8;
-  --text3:      #64748b;
-  --accent:     #818cf8;
-  --border:     #334155;
-  --border2:    #1e293b;
-}
+@import '../lib/tokens.css';
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

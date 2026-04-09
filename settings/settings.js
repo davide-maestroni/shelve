@@ -2,6 +2,8 @@
  * Settings page
  */
 
+import { applyTheme, applyThemeFromMode } from '../lib/theme.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
   await applyTheme();
   await loadSettings();
@@ -89,21 +91,6 @@ function setActiveSegment(control, value) {
   control.querySelectorAll('.seg-btn').forEach(btn => {
     btn.setAttribute('aria-pressed', btn.dataset.value === value ? 'true' : 'false');
   });
-}
-
-function applyThemeFromMode(mode) {
-  const html = document.documentElement;
-  if (mode === 'dark') {
-    html.setAttribute('data-theme', 'dark');
-    localStorage.setItem('shelve_theme', 'dark');
-  } else if (mode === 'light') {
-    html.setAttribute('data-theme', 'light');
-    localStorage.setItem('shelve_theme', 'light');
-  } else {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    localStorage.setItem('shelve_theme', prefersDark ? 'dark' : 'light');
-  }
 }
 
 // ─── Fetch missing data ───────────────────────────────────────────────────────
@@ -223,15 +210,4 @@ async function clearStorage(action, message) {
   }
 }
 
-async function applyTheme() {
-  const res = await chrome.storage.local.get('shelve_settings');
-  const mode = res.shelve_settings?.darkMode || 'system';
-  applyThemeFromMode(mode);
-  if (mode === 'system') {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      const t = e.matches ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', t);
-      localStorage.setItem('shelve_theme', t);
-    });
-  }
-}
+// applyTheme() and applyThemeFromMode() are imported from ../lib/theme.js

@@ -6,6 +6,7 @@
 import { search as fuzzySearch } from '../lib/fuzzy-search.js';
 import { relativeTime } from '../lib/utils.js';
 import { MISMATCH_THRESHOLD } from '../lib/classifier.js';
+import { applyTheme } from '../lib/theme.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -114,29 +115,7 @@ async function loadData() {
 }
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
-
-async function applyTheme() {
-  const settings = await chrome.storage.local.get('shelve_settings');
-  const mode = settings.shelve_settings?.darkMode || 'system';
-  const html = document.documentElement;
-  if (mode === 'dark') {
-    html.setAttribute('data-theme', 'dark');
-    localStorage.setItem('shelve_theme', 'dark');
-  } else if (mode === 'light') {
-    html.setAttribute('data-theme', 'light');
-    localStorage.setItem('shelve_theme', 'light');
-  } else {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const t = mq.matches ? 'dark' : 'light';
-    html.setAttribute('data-theme', t);
-    localStorage.setItem('shelve_theme', t);
-    mq.onchange = e => {
-      const next = e.matches ? 'dark' : 'light';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('shelve_theme', next);
-    };
-  }
-}
+// applyTheme() is imported from ../lib/theme.js
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 

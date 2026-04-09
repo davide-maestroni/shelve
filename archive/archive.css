@@ -1,41 +1,5 @@
 /* ─── Design tokens ────────────────────────────────────────────────────────── */
-:root {
-  --bg:          #f9fafb;
-  --bg-card:     #ffffff;
-  --bg-topbar:   #ffffff;
-  --text:        #111827;
-  --text2:       #6b7280;
-  --text3:       #9ca3af;
-  --accent:      #4f46e5;
-  --accent-h:    #4338ca;
-  --accent-dim:  #ede9fe;
-  --danger:      #dc2626;
-  --border:      #e5e7eb;
-  --border2:     #f3f4f6;
-  --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:   0 4px 12px rgba(0,0,0,.08);
-  --shadow-card: 0 2px 8px rgba(0,0,0,.06);
-  --radius:      12px;
-  --radius-sm:   8px;
-  --topbar-h:    56px;
-}
-
-[data-theme="dark"] {
-  --bg:          #0f172a;
-  --bg-card:     #1e293b;
-  --bg-topbar:   #1e293b;
-  --text:        #f1f5f9;
-  --text2:       #94a3b8;
-  --text3:       #64748b;
-  --accent:      #818cf8;
-  --accent-h:    #a5b4fc;
-  --accent-dim:  #1e1b4b;
-  --danger:      #f87171;
-  --border:      #334155;
-  --border2:     #1e293b;
-  --shadow-sm:   0 1px 3px rgba(0,0,0,.3);
-  --shadow-card: 0 2px 8px rgba(0,0,0,.25);
-}
+@import '../lib/tokens.css';
 
 /* ─── Reset / base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
