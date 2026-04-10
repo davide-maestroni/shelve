@@ -1045,13 +1045,12 @@ function openAddUrlModal(presetShelfId) {
     opt.textContent = s.customTitle || s.title;
     shelfSel.appendChild(opt);
   }
-  const unsorted = Object.values(state.shelves).find(s => s.isUnsorted);
-  if (unsorted) {
-    const opt = document.createElement('option');
-    opt.value = unsorted.id;
-    opt.textContent = 'Unsorted';
-    shelfSel.appendChild(opt);
-  }
+  const unsorted = Object.values(state.shelves).find(s => s.isUnsorted)
+    || { id: UNSORTED_ID, title: 'Unsorted' };
+  const uOpt = document.createElement('option');
+  uOpt.value = unsorted.id;
+  uOpt.textContent = unsorted.customTitle || unsorted.title;
+  shelfSel.appendChild(uOpt);
   if (presetShelfId) shelfSel.value = presetShelfId;
 
   // Reset state

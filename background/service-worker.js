@@ -182,7 +182,13 @@ async function handleMessage(msg) {
       }
       const nUrl = normalizeUrl(userUrl);
       broadcast({ type: 'archive_start', url: nUrl });
-      // Open a background tab so we can extract content and favicon
+      const settings = await Store.getSettings();
+      const switchFocus = !!settings.switchFocus;
+      // Remember which tab is currently active so we can restore focus afterwards
+      const [originalActive] = switchFocus
+        ? await chrome.tabs.query({ active: true, currentWindow: true })
+        : [];
+      // Open a background tab to load the URL
       const tempTab = await chrome.tabs.create({ url: userUrl, active: false });
       try {
         // Wait for the tab to fully load (up to 20s)
@@ -198,6 +204,32 @@ async function handleMessage(msg) {
           chrome.tabs.onUpdated.addListener(listener);
         });
         const freshTab = await chrome.tabs.get(tempTab.id).catch(() => tempTab);
+
+        // Capture thumbnail only if switchFocus is enabled (requires activating the tab)
+        let thumbnail = null;
+        if (switchFocus) {
+          try {
+            await _activateAndWait(freshTab.id);
+            const capture = () => Promise.race([
+              chrome.tabs.captureVisibleTab(freshTab.windowId, { format: 'jpeg', quality: 70 }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Capture timeout')), 3000)),
+            ]);
+            let raw = await capture();
+            for (let i = 0; i < 5 && !await _isMeaningfulCapture(raw); i++) {
+              await sleep(300);
+              raw = await capture().catch(() => null);
+            }
+            if (raw) thumbnail = await resizeThumbnail(raw, 480, 270);
+          } catch (e) {
+            console.warn('[Shelve] Thumbnail capture failed:', e.message);
+          } finally {
+            // Restore original active tab regardless of capture outcome
+            if (originalActive?.id) {
+              chrome.tabs.update(originalActive.id, { active: true }).catch(() => {});
+            }
+          }
+        }
+
         // Extract content via content script
         let extracted = { title: freshTab.title, content: '', metaDescription: '', url: userUrl };
         try {
@@ -231,6 +263,7 @@ async function handleMessage(msg) {
           lastArchived: now,
           shelfId: targetShelfId ?? existing?.shelfId ?? null,
         });
+        if (thumbnail) await Store.setThumbnail(nUrl, thumbnail);
         // Shelf assignment
         if (targetShelfId) {
           await _refreshFitScores();
