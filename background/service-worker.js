@@ -277,8 +277,12 @@ async function handleMessage(msg) {
         broadcast({ type: 'archive_done', url: nUrl });
         return { ok: true, normalizedUrl: nUrl };
       } catch (e) {
-        broadcast({ type: 'archive_error', url: nUrl, message: e.message });
-        return { ok: false, error: e.message };
+        if (e.code === 'SYNC_QUOTA_EXCEEDED') {
+          broadcast({ type: 'sync_quota_exceeded', message: e.message });
+        } else {
+          broadcast({ type: 'archive_error', url: nUrl, message: e.message });
+        }
+        return { ok: false, error: e.message, code: e.code };
       } finally {
         chrome.tabs.remove(tempTab.id).catch(() => {});
       }
@@ -548,8 +552,12 @@ async function archiveTab(tab, { skipClassification = false, forceCapture = fals
     broadcast({ type: 'archive_done', url: nUrl });
 
   } catch (e) {
-    broadcast({ type: 'archive_error', url: nUrl, message: e.message });
-    console.error('[Shelve] archiveTab error:', e);
+    if (e.code === 'SYNC_QUOTA_EXCEEDED') {
+      broadcast({ type: 'sync_quota_exceeded', message: e.message });
+    } else {
+      broadcast({ type: 'archive_error', url: nUrl, message: e.message });
+      console.error('[Shelve] archiveTab error:', e);
+    }
   }
 }
 

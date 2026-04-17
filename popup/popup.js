@@ -103,6 +103,11 @@ function onMessage(msg) {
       statusFill.style.background = '#ef4444';
       setTimeout(resetStatus, 3000);
       break;
+    case 'sync_quota_exceeded':
+      showStatus(0, 'Sync storage full — delete archived tabs to free up space');
+      statusFill.style.background = '#ef4444';
+      setTimeout(resetStatus, 5000);
+      break;
   }
 }
 

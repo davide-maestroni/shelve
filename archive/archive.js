@@ -78,6 +78,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       loadData().then(renderCurrentView);
     }
     if (msg.type === 'settings_updated') applyTheme();
+    if (msg.type === 'sync_quota_exceeded') showToast(
+      'Sync storage full',
+      'Delete archived tabs to free up sync space, then try again.'
+    );
   });
 
   // React to cross-device storage changes
@@ -1021,6 +1025,29 @@ async function moveTab(tab, targetShelfId) {
   // Re-render current view to reflect the move
   await loadData();
   renderCurrentView();
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+
+function showToast(title, message, duration = 8000) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+    </svg>
+    <div class="toast-body">
+      <div class="toast-title"></div>
+      <div class="toast-msg"></div>
+    </div>
+    <button class="toast-close" aria-label="Dismiss">✕</button>`;
+  toast.querySelector('.toast-title').textContent = title;
+  toast.querySelector('.toast-msg').textContent = message;
+  document.body.appendChild(toast);
+
+  const dismiss = () => toast.remove();
+  toast.querySelector('.toast-close').addEventListener('click', dismiss);
+  if (duration) setTimeout(dismiss, duration);
 }
 
 // ─── Add URL modal ────────────────────────────────────────────────────────────
