@@ -72,7 +72,13 @@
     // Class/ID patterns to strip
     const stripPattern = /nav|menu|sidebar|footer|header|advert|promo|banner|social|share|widget|cookie|popup|modal|overlay|comment|subscribe|related|recommend|newsletter/i;
 
-    const clone = node.cloneNode(true);
+    let clone;
+    try {
+      clone = node.cloneNode(true);
+    } catch (e) {
+      // Some nodes (shadow DOM, certain iframes) can't be cloned — skip cleaning
+      return node;
+    }
 
     // Remove unwanted elements
     clone.querySelectorAll('*').forEach(el => {

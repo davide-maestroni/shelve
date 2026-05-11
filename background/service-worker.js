@@ -3,10 +3,19 @@
  * Orchestrates archiving, storage, and classification.
  */
 
+// SW_VERSION: force Chrome to treat this as a new script after module-caching issues
+const SW_VERSION = '2025-05-04a';
+
 import { normalizeUrl, generateId, truncate } from '../lib/utils.js';
 import { Summarizer } from '../lib/summarizer.js';
 import { Classifier } from '../lib/classifier.js';
 import * as Store from '../lib/storage.js';
+
+self.addEventListener('install', () => {
+  console.log('[Shelve SW] installing version', SW_VERSION);
+  self.skipWaiting();
+});
+self.addEventListener('activate', () => console.log('[Shelve SW] activated version', SW_VERSION));
 
 // ─── Icon ─────────────────────────────────────────────────────────────────────
 
@@ -262,6 +271,7 @@ async function handleMessage(msg) {
           firstArchived: existing?.firstArchived ?? now,
           lastArchived: now,
           shelfId: targetShelfId ?? existing?.shelfId ?? null,
+          isNew: true,
         });
         if (thumbnail) await Store.setThumbnail(nUrl, thumbnail);
         // Shelf assignment
@@ -302,6 +312,24 @@ async function handleMessage(msg) {
     case 'update_tab': {
       await Store.setTab(msg.normalizedUrl, msg.data);
       broadcast({ type: 'tabs_updated' });
+      return { ok: true };
+    }
+    case 'mark_tabs_seen': {
+      const urls = msg.normalizedUrls;
+      if (!urls?.length) return { ok: true };
+      const res = await chrome.storage.local.get('shelve_tabs');
+      const tabs = res.shelve_tabs || {};
+      let changed = false;
+      for (const nUrl of urls) {
+        if (tabs[nUrl]?.isNew) {
+          delete tabs[nUrl].isNew;
+          changed = true;
+        }
+      }
+      if (changed) {
+        await chrome.storage.local.set({ shelve_tabs: tabs });
+        broadcast({ type: 'tabs_updated' });
+      }
       return { ok: true };
     }
     case 'create_shelf': {
@@ -534,6 +562,7 @@ async function archiveTab(tab, { skipClassification = false, forceCapture = fals
       firstArchived: existing?.firstArchived ?? now,
       lastArchived: now,
       shelfId: existing?.shelfId ?? null,
+      isNew: true,
     });
 
     if (thumbnail) await Store.setThumbnail(nUrl, thumbnail);

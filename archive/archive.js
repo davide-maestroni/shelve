@@ -124,6 +124,10 @@ async function loadData() {
 // ─── Navigation ───────────────────────────────────────────────────────────────
 
 function showShelvesView() {
+  if (_seenInShelfView.length) {
+    chrome.runtime.sendMessage({ action: 'mark_tabs_seen', normalizedUrls: _seenInShelfView });
+    _seenInShelfView = [];
+  }
   state.view = 'shelves';
   state.activeShelfId = null;
   viewShelves.classList.remove('hidden');
@@ -148,6 +152,15 @@ function showShelfView(shelfId) {
   // Capture the original color once; not overwritten on subsequent re-renders
   const shelf = state.shelves[shelfId];
   _originalShelfColor = shelf?.color || '#4f46e5';
+  // Record which tabs are new when entering so we can mark them seen on exit
+  const knownIds = new Set(Object.keys(state.shelves));
+  _seenInShelfView = Object.values(state.tabs)
+    .filter(t => t.isNew && (
+      shelfId === UNSORTED_ID
+        ? (!t.shelfId || !knownIds.has(t.shelfId) || t.shelfId === UNSORTED_ID)
+        : t.shelfId === shelfId
+    ))
+    .map(t => t.normalizedUrl);
   viewShelves.classList.add('hidden');
   viewShelf.classList.remove('hidden');
   btnBack.classList.remove('hidden');
@@ -203,6 +216,14 @@ function renderShelves() {
     card.querySelector('.shelf-card-accent').style.background = shelf.color || '#94a3b8';
     card.querySelector('.shelf-card-title').textContent = shelf.customTitle || shelf.title || 'Unnamed';
     card.querySelector('.shelf-card-count').textContent = shelfTabs.length === 0 ? 'empty' : `${shelfTabs.length} tab${shelfTabs.length !== 1 ? 's' : ''}`;
+
+    // New-tabs badge
+    const newCount = shelfTabs.filter(t => t.isNew).length;
+    const newBadge = card.querySelector('.shelf-new-badge');
+    if (newCount > 0) {
+      newBadge.textContent = newCount;
+      newBadge.classList.remove('hidden');
+    }
 
     // Mismatch badge
     const mismatchCount = shelfTabs.filter(t => isMismatched(t)).length;
@@ -370,7 +391,16 @@ function populateTabCard(card, tab) {
     e.preventDefault();
     e.stopPropagation();
     chrome.tabs.create({ url: tab.url, active: false });
+    if (tab.isNew) {
+      tab.isNew = false;
+      card.querySelector('.badge-new')?.classList.add('hidden');
+      chrome.runtime.sendMessage({ action: 'mark_tabs_seen', normalizedUrls: [tab.normalizedUrl] });
+    }
   });
+
+  if (tab.isNew) {
+    card.querySelector('.badge-new').classList.remove('hidden');
+  }
 
   const dispTitle = tab.customTitle || tab.title || 'Untitled';
   const dispDesc  = tab.customDescription || tab.description || '';
@@ -545,6 +575,7 @@ function toggleEditField(el, onSave) {
 
 let editingShelfTitle = false;
 let _originalShelfColor = null; // set once when entering shelf view, not overwritten on re-renders
+let _seenInShelfView = [];      // normalizedUrls that were isNew when the current shelf was entered
 
 function bindShelfHeaderEditing() {
   btnEditShelfTitle.addEventListener('click', () => {
